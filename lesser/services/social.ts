@@ -1,11 +1,37 @@
 /**
  * services/social.ts
  *
- * Firebase-ready Social Service.
- * Currently returns mock data. Replace with Firestore calls.
+ * Complete Firestore Social Service for Lesser.
  *
- * Firebase integration points are marked with: // [FIREBASE]
+ * Firestore schema:
+ *   /users/{uid}                       — user profile
+ *   /users/{uid}/followers/{followerUid} — who follows this user
+ *   /users/{uid}/following/{followedUid} — who this user follows
+ *   /feedPosts/{postId}                — global activity feed
+ *
+ * Follow/unfollow are atomic batch writes so both sides stay consistent.
  */
+
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  deleteDoc,
+  addDoc,
+  query,
+  orderBy,
+  limit,
+  serverTimestamp,
+  writeBatch,
+  onSnapshot,
+  Unsubscribe,
+  where,
+} from 'firebase/firestore';
+import { db } from './firebase';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface Friend {
   uid: string;
@@ -23,68 +49,199 @@ export interface FeedPost {
   timestamp: string;
 }
 
+export interface SocialError {
+  success: false;
+  error: string;
+}
+
+export interface SocialSuccess {
+  success: true;
+}
+
+// ─── Follow / Unfollow ────────────────────────────────────────────────────────
+
 /**
- * Fetch the social feed for a user (posts from friends).
- * Replace with Firestore query on 'feed' collection ordered by timestamp.
+ * Follow a user.
+ * Uses a batch write for atomic consistency:
+ *   - /users/{targetUid}/followers/{myUid}  ← target gains a follower
+ *   - /users/{myUid}/following/{targetUid}  ← I follow the target
+ */
+export async function followUser(
+  myUid: string,
+  targetUid: string,
+  myUsername: string,
+  targetUsername: string,
+): Promise<SocialSuccess | SocialError> {
+  try {
+    const batch = writeBatch(db);
+
+    // target's followers subcollection
+    batch.set(doc(db, 'users', targetUid, 'followers', myUid), {
+      uid: myUid,
+      username: myUsername,
+      followedAt: serverTimestamp(),
+    });
+
+    // my following subcollection
+    batch.set(doc(db, 'users', myUid, 'following', targetUid), {
+      uid: targetUid,
+      username: targetUsername,
+      followedAt: serverTimestamp(),
+    });
+
+    await batch.commit();
+    return { success: true };
+  } catch (err: unknown) {
+    return { success: false, error: (err as Error).message };
+  }
+}
+
+/**
+ * Unfollow a user.
+ * Atomic batch delete from both sides.
+ */
+export async function unfollowUser(
+  myUid: string,
+  targetUid: string,
+): Promise<SocialSuccess | SocialError> {
+  try {
+    const batch = writeBatch(db);
+    batch.delete(doc(db, 'users', targetUid, 'followers', myUid));
+    batch.delete(doc(db, 'users', myUid, 'following', targetUid));
+    await batch.commit();
+    return { success: true };
+  } catch (err: unknown) {
+    return { success: false, error: (err as Error).message };
+  }
+}
+
+/**
+ * Check whether myUid is currently following targetUid.
+ */
+export async function isFollowing(myUid: string, targetUid: string): Promise<boolean> {
+  const snap = await getDoc(doc(db, 'users', myUid, 'following', targetUid));
+  return snap.exists();
+}
+
+// ─── Followers / Following lists ─────────────────────────────────────────────
+
+/**
+ * Fetch the list of users who follow {uid}.
+ */
+export async function fetchFollowers(uid: string): Promise<Friend[]> {
+  const snap = await getDocs(collection(db, 'users', uid, 'followers'));
+  return snap.docs.map(d => ({
+    uid:        d.id,
+    username:   d.data().username ?? d.id,
+    streakDays: d.data().streakDays ?? 0,
+  }));
+}
+
+/**
+ * Fetch the list of users that {uid} is following.
+ */
+export async function fetchFollowing(uid: string): Promise<Friend[]> {
+  const snap = await getDocs(collection(db, 'users', uid, 'following'));
+  return snap.docs.map(d => ({
+    uid:        d.id,
+    username:   d.data().username ?? d.id,
+    streakDays: d.data().streakDays ?? 0,
+  }));
+}
+
+/**
+ * Real-time listener for followers count.
+ * Returns an unsubscribe function.
+ */
+export function onFollowersChanged(
+  uid: string,
+  callback: (followers: Friend[]) => void,
+): Unsubscribe {
+  return onSnapshot(collection(db, 'users', uid, 'followers'), snap => {
+    callback(snap.docs.map(d => ({
+      uid:        d.id,
+      username:   d.data().username ?? d.id,
+      streakDays: d.data().streakDays ?? 0,
+    })));
+  });
+}
+
+// ─── Activity Feed ────────────────────────────────────────────────────────────
+
+/**
+ * Fetch the global activity feed (most recent 30 posts).
  */
 export async function fetchFeed(_uid: string): Promise<FeedPost[]> {
-  // [FIREBASE] const q = query(collection(db, 'users', uid, 'feed'), orderBy('timestamp', 'desc'), limit(20));
-  // [FIREBASE] const snap = await getDocs(q);
-  // [FIREBASE] return snap.docs.map(d => ({ id: d.id, ...d.data() })) as FeedPost[];
-
-  await new Promise(r => setTimeout(r, 200));
-  return [
-    {
-      id: '1',
-      uid: 'u1',
-      username: 'AlexRodriguez',
-      days: 14,
-      timestamp: '2 hours ago',
-      message: '¡Poco a poco se nota la diferencia! Más concentración y mejor sueño.',
-    },
-    {
-      id: '2',
-      uid: 'u2',
-      username: 'Maria_99',
-      days: 3,
-      timestamp: '5 hours ago',
-      photoUrl:
-        'https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=600&auto=format&fit=crop',
-    },
-    {
-      id: '3',
-      uid: 'u3',
-      username: 'Carlos_Dev',
-      days: 30,
-      timestamp: '1 day ago',
-      message: 'Un mes completo en Hardcore Mode. Al principio costó, pero merece la pena.',
-    },
-  ];
+  const q = query(
+    collection(db, 'feedPosts'),
+    orderBy('timestamp', 'desc'),
+    limit(30),
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({
+    id:        d.id,
+    uid:       d.data().uid,
+    username:  d.data().username,
+    days:      d.data().days ?? 0,
+    message:   d.data().message,
+    photoUrl:  d.data().photoUrl,
+    timestamp: formatTimestamp(d.data().timestamp?.toDate()),
+  }));
 }
 
 /**
- * Fetch the friends list for a user.
- * Replace with Firestore query on user's 'friends' subcollection.
+ * Post an activity update to the global feed.
  */
-export async function fetchFriends(_uid: string): Promise<Friend[]> {
-  // [FIREBASE] const snap = await getDocs(collection(db, 'users', uid, 'friends'));
-  // [FIREBASE] return snap.docs.map(d => ({ uid: d.id, ...d.data() })) as Friend[];
-
-  await new Promise(r => setTimeout(r, 150));
-  return [
-    { uid: 'u1', username: 'AlexRodriguez', streakDays: 14 },
-    { uid: 'u2', username: 'Maria_99', streakDays: 3 },
-    { uid: 'u3', username: 'Carlos_Dev', streakDays: 30 },
-    { uid: 'u4', username: 'Sara_M', streakDays: 7 },
-  ];
+export async function postFeedUpdate(
+  uid: string,
+  username: string,
+  days: number,
+  message?: string,
+): Promise<SocialSuccess | SocialError> {
+  try {
+    await addDoc(collection(db, 'feedPosts'), {
+      uid,
+      username,
+      days,
+      message: message ?? null,
+      timestamp: serverTimestamp(),
+    });
+    return { success: true };
+  } catch (err: unknown) {
+    return { success: false, error: (err as Error).message };
+  }
 }
 
+// ─── User search ──────────────────────────────────────────────────────────────
+
 /**
- * Send a friend request.
- * Replace with Firestore write.
+ * Search users by username prefix (case-sensitive Firestore range query).
+ * For full-text search, integrate Algolia or Typesense.
  */
-export async function sendFriendRequest(_fromUid: string, _toUsername: string): Promise<boolean> {
-  // [FIREBASE] await addDoc(collection(db, 'friendRequests'), { from: fromUid, toUsername, createdAt: serverTimestamp() });
-  await new Promise(r => setTimeout(r, 300));
-  return true;
+export async function searchUsers(usernamePrefix: string): Promise<Friend[]> {
+  if (usernamePrefix.length < 2) return [];
+  const q = query(
+    collection(db, 'users'),
+    where('username', '>=', usernamePrefix),
+    where('username', '<=', usernamePrefix + '\uf8ff'),
+    limit(20),
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({
+    uid:        d.id,
+    username:   d.data().username,
+    streakDays: d.data().streakDays ?? 0,
+  }));
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatTimestamp(date?: Date): string {
+  if (!date) return '';
+  const diff = Date.now() - date.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
 }
