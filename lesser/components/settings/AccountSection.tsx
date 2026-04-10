@@ -1,0 +1,134 @@
+import React from 'react';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { ThemedText } from '@/components/themed-text';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useAuth } from '@/hooks/useAuth';
+import { useRouter } from 'expo-router';
+
+export function AccountSection() {
+  const theme = useColorScheme() ?? 'light';
+  const colors = Colors[theme];
+  const { username, isLoggedIn, logout, mode } = useAuth();
+  const router = useRouter();
+
+  const displayUsername = username || 'Guest';
+
+  const handleLogout = async () => {
+    await logout();
+    // Reset authCompleted by navigating to auth screen — force them through login again
+    router.replace('/auth');
+  };
+
+  return (
+    <View style={styles.container}>
+      <ThemedText style={styles.sectionTitle}>Account</ThemedText>
+      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+
+        {/* Profile row */}
+        <View style={styles.profileRow}>
+          <View style={[styles.avatar, { backgroundColor: colors.tint }]}>
+            <ThemedText style={{ color: colors.background, fontSize: 24, fontWeight: 'bold' }}>
+              {displayUsername.charAt(0).toUpperCase()}
+            </ThemedText>
+          </View>
+          <View style={styles.userInfo}>
+            <ThemedText style={styles.name}>{displayUsername}</ThemedText>
+            <ThemedText style={[styles.subText, { color: colors.textSecondary }]}>
+              {isLoggedIn ? 'Member since 2026' : 'Guest — not synced'}
+            </ThemedText>
+          </View>
+          <View style={[styles.modePill, { backgroundColor: colors.accent + '22' }]}>
+            <ThemedText style={[styles.modeText, { color: colors.accent }]}>
+              {mode === 'soft' ? '🌿' : mode === 'mid' ? '🛡️' : '🔥'} {mode}
+            </ThemedText>
+          </View>
+        </View>
+
+        {isLoggedIn && (
+          <>
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <TouchableOpacity style={styles.actionRow}>
+              <IconSymbol name="pencil" size={20} color={colors.icon} />
+              <ThemedText style={styles.actionText}>Change Username</ThemedText>
+              <IconSymbol name="chevron.right" size={18} color={colors.icon} />
+            </TouchableOpacity>
+
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <TouchableOpacity style={styles.actionRow}>
+              <IconSymbol name="key.fill" size={20} color={colors.icon} />
+              <ThemedText style={styles.actionText}>Change Password</ThemedText>
+              <IconSymbol name="chevron.right" size={18} color={colors.icon} />
+            </TouchableOpacity>
+          </>
+        )}
+
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+        {isLoggedIn ? (
+          <TouchableOpacity style={styles.actionRow} onPress={handleLogout}>
+            <IconSymbol name="arrow.right.square" size={20} color={colors.error} />
+            <ThemedText style={[styles.actionText, { color: colors.error }]}>Log Out</ThemedText>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.actionRow} onPress={() => router.replace('/auth')}>
+            <IconSymbol name="person.fill" size={20} color={colors.accent} />
+            <ThemedText style={[styles.actionText, { color: colors.accent }]}>Log In / Sign Up</ThemedText>
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { gap: 12 },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    paddingHorizontal: 8,
+  },
+  card: {
+    borderRadius: 20,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  profileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    gap: 14,
+  },
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  userInfo: { flex: 1 },
+  name: { fontSize: 18, fontWeight: '600' },
+  subText: { fontSize: 13, marginTop: 2 },
+  modePill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  modeText: { fontSize: 12, fontWeight: '600', textTransform: 'capitalize' },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 20,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    paddingHorizontal: 20,
+    gap: 14,
+  },
+  actionText: { fontSize: 16, flex: 1 },
+});
