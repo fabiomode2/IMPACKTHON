@@ -3,7 +3,7 @@
  *
  * Centralised string definitions for all UI text.
  * To add a new language:
- *   1. Add a new key to `LANGUAGES` (e.g. 'es', 'fr')
+ *   1. Add a new key to `LANGUAGES` (e.g. 'fr', 'de')
  *   2. Duplicate the `en` object and translate every value
  *   3. Set `currentLanguage` or expose a setter via context
  *
@@ -34,6 +34,7 @@ const en = {
     month: 'This month',
     sixMonths: '6 months',
     year: '1 year',
+    tapToChange: 'Tap to change →',
   },
 
   // ── Onboarding ──────────────────────────────────────────
@@ -93,6 +94,7 @@ const en = {
     switchToLogin: 'Already have an account? Log in',
     skipButton: 'Skip for now',
     fillAllFields: 'Please fill in all fields.',
+    genericError: 'Something went wrong. Please try again.',
   },
 
   // ── Home ────────────────────────────────────────────────
@@ -116,7 +118,7 @@ const en = {
     screenTimeLast6Months: 'last 6 months',
     onTrack: 'On Track',
     overQuota: 'Over Quota',
-    topBadge: 'You\'re in the top {{pct}}% of users!',
+    topBadge: "You're in the top {{pct}}% of users!",
     timeSaved: 'Time Saved',
     timeSavedComparison: "That's enough to {{what}}",
     timeSavedToday: 'Today',
@@ -141,8 +143,12 @@ const en = {
   social: {
     title: 'Social',
     shareProfile: 'Share Profile',
-    shareCopied: '✓ Profile link copied!',
+    shareCopied: 'Profile link copied!',
     shareMessage: 'Check out my profile on Lesser 👇\nlesser://profile/{{username}}',
+    sharePopupTitle: 'Share your profile',
+    sharePopupSubtitle: 'Invite friends to join and track your progress together.',
+    sharePopupCopy: 'Copy Profile Link',
+    sharePopupClose: 'Close',
     friends: 'Friends',
     addFriend: 'Add',
     followers: 'Followers',
@@ -187,7 +193,17 @@ const en = {
     savedThisMonth: 'saved this month',
     dayStreak: 'day streak',
     vsUsers: 'vs users',
-    tapToCycle: 'Tap to change period',
+    tapToCycle: 'Tap to cycle →',
+  },
+
+  // ── Followers ────────────────────────────────────────────
+  followers: {
+    title: 'Followers',
+    searchPlaceholder: 'Search followers…',
+    followerSingular: 'follower',
+    followerPlural: 'followers',
+    streakLabel: '🔥 {{days}} day streak',
+    countSummary: '{{count}} {{noun}} · {{following}} following',
   },
 
   // ── Settings ─────────────────────────────────────────────
@@ -217,6 +233,7 @@ const es: Strings = {
     loading: 'Cargando…', error: 'Algo salió mal. Inténtalo de nuevo.',
     seeAll: 'Ver todo', today: 'Hoy', week: 'Esta semana', month: 'Este mes',
     sixMonths: '6 meses', year: '1 año',
+    tapToChange: 'Toca para cambiar →',
   },
   onboarding: {
     title: 'Elige tu camino', subtitle: 'Toca un modo para seleccionarlo. Puedes cambiarlo en Ajustes.',
@@ -232,6 +249,7 @@ const es: Strings = {
     loginButton: 'Iniciar sesión', registerButton: 'Registrarse',
     switchToRegister: '¿No tienes cuenta? Regístrate', switchToLogin: '¿Ya tienes cuenta? Inicia sesión',
     skipButton: 'Saltar por ahora', fillAllFields: 'Por favor rellena todos los campos.',
+    genericError: 'Algo salió mal. Inténtalo de nuevo.',
   },
   home: {
     greeting: '¡Buen trabajo,', greetingGuest: 'Desconocido', statsButton: 'Estadísticas',
@@ -248,8 +266,12 @@ const es: Strings = {
     comparisons: { nap: 'echar una siesta 😴', film: 'ver un cortometraje 🎬', book: 'leer 50 páginas 📚', movie: 'ver una película entera 🍿', got: 'ver una temporada de Juego de Tronos 🐉', show: 'terminar una serie de Netflix 📺' },
   },
   social: {
-    title: 'Social', shareProfile: 'Compartir perfil', shareCopied: '✓ ¡Enlace copiado!',
+    title: 'Social', shareProfile: 'Compartir perfil', shareCopied: '¡Enlace de perfil copiado!',
     shareMessage: 'Mira mi perfil en Lesser 👇\nlesser://profile/{{username}}',
+    sharePopupTitle: 'Comparte tu perfil',
+    sharePopupSubtitle: 'Invita a amigos a unirse y seguir vuestro progreso juntos.',
+    sharePopupCopy: 'Copiar enlace de perfil',
+    sharePopupClose: 'Cerrar',
     friends: 'Amigos', addFriend: 'Añadir', followers: 'Seguidores', following: 'Siguiendo',
     follow: 'Seguir', unfollow: 'Dejar de seguir', feed: 'Feed de actividad',
     streakBadge: '{{days}}d de racha', noFriends: 'Sin amigos aún. ¡Añade alguno!',
@@ -267,7 +289,15 @@ const es: Strings = {
     watchEquivalent: 'Suficiente para ver {{what}}',
     avgDaily: 'Media diaria', savedLabel: 'Ahorrado en el período', daysOnGoal: 'Días en objetivo', bestDay: 'Mejor día',
     goalLine: 'Objetivo {{h}}h', monthlySnapshot: 'Resumen mensual',
-    savedThisMonth: 'ahorrado este mes', dayStreak: 'días de racha', vsUsers: 'vs usuarios', tapToCycle: 'Toca para cambiar el período',
+    savedThisMonth: 'ahorrado este mes', dayStreak: 'días de racha', vsUsers: 'vs usuarios', tapToCycle: 'Toca para cambiar →',
+  },
+  followers: {
+    title: 'Seguidores',
+    searchPlaceholder: 'Buscar seguidores…',
+    followerSingular: 'seguidor',
+    followerPlural: 'seguidores',
+    streakLabel: '🔥 {{days}} días de racha',
+    countSummary: '{{count}} {{noun}} · {{following}} siguiendo',
   },
   settings: {
     title: 'Ajustes', version: 'IMPACKTHON 2026 — {{version}}',
@@ -281,7 +311,7 @@ const es: Strings = {
 const LANGUAGES: Record<string, Strings> = { en, es };
 
 // Current language — change this to switch the whole UI
-let currentLanguage = 'en';
+let currentLanguage = 'es';
 
 export function setLanguage(lang: string) {
   if (LANGUAGES[lang]) currentLanguage = lang;

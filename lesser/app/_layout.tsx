@@ -14,13 +14,15 @@ export const unstable_settings = {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const { isOnboarded, authCompleted } = useAuth();
+  const { isOnboarded, authCompleted, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
   const navigationState = useRootNavigationState();
 
   useEffect(() => {
     if (!navigationState?.key) return;
+    // Don't redirect while Firebase is resolving auth state
+    if (isLoading) return;
 
     const inAuthGroup = segments[0] === 'auth' || segments[0] === 'onboarding';
 
@@ -36,17 +38,23 @@ function RootLayoutNav() {
       }
     }, 0);
     return () => clearTimeout(timeout);
-  }, [isOnboarded, authCompleted, segments, router, navigationState?.key]);
+  }, [isOnboarded, authCompleted, isLoading, segments, router, navigationState?.key]);
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack
+        screenOptions={{
+          // Smooth slide transition everywhere — no jarring fade flicker
+          animation: 'ios_from_right',
+          animationDuration: 280,
+        }}
+      >
+        <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'none' }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="auth" options={{ headerShown: false, animation: 'fade' }} />
-        <Stack.Screen name="stats" options={{ headerShown: false, animation: 'fade' }} />
-        <Stack.Screen name="friend/[uid]" options={{ headerShown: false, animation: 'fade' }} />
-        <Stack.Screen name="followers" options={{ headerShown: false, animation: 'fade' }} />
+        <Stack.Screen name="stats" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="friend/[uid]" options={{ headerShown: false, animation: 'ios_from_right' }} />
+        <Stack.Screen name="followers" options={{ headerShown: false, animation: 'ios_from_right' }} />
         <Stack.Screen name="+not-found" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>

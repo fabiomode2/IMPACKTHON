@@ -6,6 +6,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'expo-router';
+import { t } from '@/constants/i18n';
 
 export function AccountSection() {
   const theme = useColorScheme() ?? 'light';
@@ -17,13 +18,12 @@ export function AccountSection() {
 
   const handleLogout = async () => {
     await logout();
-    // Reset authCompleted by navigating to auth screen — force them through login again
     router.replace('/auth');
   };
 
   return (
     <View style={styles.container}>
-      <ThemedText style={styles.sectionTitle}>Account</ThemedText>
+      <ThemedText style={styles.sectionTitle}>{t('settings.account')}</ThemedText>
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
 
         {/* Profile row */}
@@ -36,7 +36,7 @@ export function AccountSection() {
           <View style={styles.userInfo}>
             <ThemedText style={styles.name}>{displayUsername}</ThemedText>
             <ThemedText style={[styles.subText, { color: colors.textSecondary }]}>
-              {isLoggedIn ? 'Member since 2026' : 'Guest — not synced'}
+              {isLoggedIn ? t('settings.memberSince') : t('settings.guestLabel')}
             </ThemedText>
           </View>
           <View style={[styles.modePill, { backgroundColor: colors.accent + '22' }]}>
@@ -51,14 +51,14 @@ export function AccountSection() {
             <View style={[styles.divider, { backgroundColor: colors.border }]} />
             <TouchableOpacity style={styles.actionRow}>
               <IconSymbol name="pencil" size={20} color={colors.icon} />
-              <ThemedText style={styles.actionText}>Change Username</ThemedText>
+              <ThemedText style={styles.actionText}>{t('settings.changeUsername')}</ThemedText>
               <IconSymbol name="chevron.right" size={18} color={colors.icon} />
             </TouchableOpacity>
 
             <View style={[styles.divider, { backgroundColor: colors.border }]} />
             <TouchableOpacity style={styles.actionRow}>
               <IconSymbol name="key.fill" size={20} color={colors.icon} />
-              <ThemedText style={styles.actionText}>Change Password</ThemedText>
+              <ThemedText style={styles.actionText}>{t('settings.changePassword')}</ThemedText>
               <IconSymbol name="chevron.right" size={18} color={colors.icon} />
             </TouchableOpacity>
           </>
@@ -69,12 +69,12 @@ export function AccountSection() {
         {isLoggedIn ? (
           <TouchableOpacity style={styles.actionRow} onPress={handleLogout}>
             <IconSymbol name="arrow.right.square" size={20} color={colors.error} />
-            <ThemedText style={[styles.actionText, { color: colors.error }]}>Log Out</ThemedText>
+            <ThemedText style={[styles.actionText, { color: colors.error }]}>{t('settings.logOut')}</ThemedText>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity style={styles.actionRow} onPress={() => router.replace('/auth')}>
             <IconSymbol name="person.fill" size={20} color={colors.accent} />
-            <ThemedText style={[styles.actionText, { color: colors.accent }]}>Log In / Sign Up</ThemedText>
+            <ThemedText style={[styles.actionText, { color: colors.accent }]}>{t('settings.logIn')}</ThemedText>
           </TouchableOpacity>
         )}
       </View>

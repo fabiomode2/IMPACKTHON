@@ -82,7 +82,7 @@ export function UsageHoursCounter({ hours24h, hoursWeek, hoursMonth, hours6Month
           {isGood ? t('home.onTrack') : t('home.overQuota')}
         </ThemedText>
         <ThemedText style={[styles.hint, { color: colors.textSecondary }]}>
-          Tap to change →
+          {t('common.tapToChange')}
         </ThemedText>
       </View>
     </TouchableOpacity>

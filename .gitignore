@@ -1,0 +1,34 @@
+# ── Environment / secrets ────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Expo / React Native ───────────────────────────────────────────────────────
+lesser/node_modules/
+lesser/.expo/
+lesser/dist/
+lesser/web-build/
+lesser/.dart_tool/
+lesser/*.jks
+lesser/*.p8
+lesser/*.p12
+lesser/*.key
+lesser/*.mobileprovision
+lesser/*.orig.*
+lesser/android/
+lesser/ios/
+!lesser/assets/
+
+# ── Firebase ──────────────────────────────────────────────────────────────────
+backend/functions/node_modules/
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+firestore-debug.log
+ui-debug.log
+*.local
+
+# ── Misc ─────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.log

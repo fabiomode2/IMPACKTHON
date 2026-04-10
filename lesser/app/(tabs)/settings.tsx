@@ -8,6 +8,7 @@ import { AccountSection } from '@/components/settings/AccountSection';
 import { ModeSelector } from '@/components/settings/ModeSelector';
 import { WhitelistSection } from '@/components/settings/WhitelistSection';
 import { ThemedText } from '@/components/themed-text';
+import { t } from '@/constants/i18n';
 
 export default function SettingsScreen() {
   const theme = useColorScheme() ?? 'light';
@@ -18,16 +19,16 @@ export default function SettingsScreen() {
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={[styles.container, { paddingBottom: insets.bottom + 72 }]}>
         <View style={styles.header}>
-          <ThemedText type="title">Settings</ThemedText>
+          <ThemedText type="title">{t('settings.title')}</ThemedText>
         </View>
 
         <AccountSection />
         <ModeSelector />
         <WhitelistSection />
-        
+
         <View style={styles.footer}>
           <ThemedText style={{ color: colors.textSecondary, textAlign: 'center' }}>
-            IMPACKTHON 2026 App - v1.0.0
+            {t('settings.version', { version: t('app.version') })}
           </ThemedText>
         </View>
       </ScrollView>

@@ -47,14 +47,6 @@ const CHART_DATA: Record<ChartPeriod, { label: string; hours: number }[]> = {
   ],
 };
 
-const SAVINGS_COMPARISONS = [
-  { threshold: 1, key: 'film' },
-  { threshold: 5, key: 'got' },
-  { threshold: 10, key: 'show' },
-  { threshold: 15, key: 'show' },
-  { threshold: 24, key: 'show' },
-] as const;
-
 function getSavingsComparison(savedHours: number): string {
   if (savedHours >= 8) return t('home.comparisons.got');
   if (savedHours >= 4) return t('home.comparisons.movie');
@@ -128,7 +120,9 @@ export default function StatsScreen() {
         >
           <IconSymbol name="chevron.left" size={22} color={colors.text} />
         </TouchableOpacity>
-        <ThemedText style={styles.pageTitle}>{t('stats.title')}</ThemedText>
+        <ThemedText style={styles.pageTitle} numberOfLines={1} adjustsFontSizeToFit>
+          {t('stats.title')}
+        </ThemedText>
         <View style={{ width: 44 }} />
       </View>
 
@@ -168,7 +162,9 @@ export default function StatsScreen() {
           <View style={styles.chartHeader}>
             <ThemedText style={styles.chartTitle}>{periodLabel(period)}</ThemedText>
             <View style={[styles.cyclePill, { backgroundColor: colors.accent + '22' }]}>
-              <ThemedText style={[styles.cycleText, { color: colors.accent }]}>Tap to cycle →</ThemedText>
+              <ThemedText style={[styles.cycleText, { color: colors.accent }]}>
+                {t('stats.tapToCycle')}
+              </ThemedText>
             </View>
           </View>
           <BarChart period={period} />
@@ -215,8 +211,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pageTitle: {
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: '700',
+    flex: 1,
+    textAlign: 'center',
+    paddingHorizontal: 8,
   },
   scroll: {
     padding: 16,
@@ -275,12 +274,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 16,
+    flexWrap: 'wrap',
+    gap: 6,
   },
   chartTitle: {
     fontSize: 15,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
+    flexShrink: 1,
   },
   cyclePill: {
     paddingHorizontal: 10,
@@ -326,6 +328,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
+    marginTop: 12,
   },
   monthlyItem: {
     flex: 1,

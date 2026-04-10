@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   StyleSheet, SafeAreaView, View, TouchableOpacity, ScrollView,
-  Modal, Pressable,
+  Modal, Pressable, Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
@@ -43,6 +43,113 @@ function FriendCard({ friend }: { friend: Friend }) {
   );
 }
 
+// ─── Share Profile Pop-up ─────────────────────────────────────────────────
+function ShareProfileModal({
+  visible,
+  onClose,
+  username,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  username: string;
+}) {
+  const theme = useColorScheme() ?? 'light';
+  const colors = Colors[theme];
+  const [copied, setCopied] = useState(false);
+
+  const profileLink = `lesser://profile/${username}`;
+
+  const handleCopy = async () => {
+    await Clipboard.setStringAsync(profileLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  const initial = username.charAt(0).toUpperCase();
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      <Pressable style={styles.modalOverlay} onPress={onClose}>
+        <Pressable
+          style={[styles.modalSheet, { backgroundColor: colors.card }]}
+          onPress={e => e.stopPropagation()}
+        >
+          {/* Handle bar */}
+          <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
+
+          {/* Avatar */}
+          <View style={[styles.shareAvatar, { backgroundColor: colors.accent + '22' }]}>
+            <ThemedText style={[styles.shareAvatarText, { color: colors.accent }]}>
+              {initial}
+            </ThemedText>
+          </View>
+
+          {/* Username */}
+          <ThemedText style={[styles.shareUsername, { color: colors.text }]}>
+            @{username}
+          </ThemedText>
+
+          {/* Title & subtitle */}
+          <ThemedText style={[styles.shareTitle, { color: colors.text }]}>
+            {t('social.sharePopupTitle')}
+          </ThemedText>
+          <ThemedText style={[styles.shareSubtitle, { color: colors.textSecondary }]}>
+            {t('social.sharePopupSubtitle')}
+          </ThemedText>
+
+          {/* Link display */}
+          <View style={[styles.linkBox, { backgroundColor: colors.background, borderColor: colors.border }]}>
+            <IconSymbol name="link" size={16} color={colors.accent} />
+            <ThemedText
+              style={[styles.linkText, { color: colors.textSecondary }]}
+              numberOfLines={1}
+            >
+              {profileLink}
+            </ThemedText>
+          </View>
+
+          {/* Copy button */}
+          <TouchableOpacity
+            style={[
+              styles.copyBtn,
+              { backgroundColor: copied ? colors.success : colors.accent },
+            ]}
+            onPress={handleCopy}
+            activeOpacity={0.8}
+          >
+            <IconSymbol
+              name={copied ? 'checkmark.circle.fill' : 'doc.on.doc.fill'}
+              size={18}
+              color="#FFF"
+            />
+            <ThemedText style={styles.copyBtnText}>
+              {copied ? t('social.shareCopied') : t('social.sharePopupCopy')}
+            </ThemedText>
+          </TouchableOpacity>
+
+          {/* Close */}
+          <TouchableOpacity
+            style={[styles.closeBtn, { borderColor: colors.border }]}
+            onPress={onClose}
+            activeOpacity={0.7}
+          >
+            <ThemedText style={[styles.closeBtnText, { color: colors.textSecondary }]}>
+              {t('social.sharePopupClose')}
+            </ThemedText>
+          </TouchableOpacity>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+// ─── Main screen ─────────────────────────────────────────────────────────────
 export default function SocialScreen() {
   const theme = useColorScheme() ?? 'light';
   const colors = Colors[theme];
@@ -50,15 +157,7 @@ export default function SocialScreen() {
   const insets = useSafeAreaInsets();
   const { username } = useAuth();
 
-  const [showCopied, setShowCopied] = useState(false);
-
-  const handleShare = async () => {
-    const handle = username ?? 'guest';
-    const link = `lesser://profile/${handle}`;
-    await Clipboard.setStringAsync(link);
-    setShowCopied(true);
-    setTimeout(() => setShowCopied(false), 2500);
-  };
+  const [showShare, setShowShare] = useState(false);
 
   const mockFeed: FeedItemData[] = [
     { id: '1', uid: 'u1', username: 'AlexRodriguez', days: 14, timestamp: '2h ago', message: '¡Poco a poco se nota la diferencia! Más concentración y mejor sueño.' },
@@ -74,10 +173,12 @@ export default function SocialScreen() {
     { uid: 'u5', username: 'JuanP', streakDays: 2 },
   ];
 
+  const displayUsername = username ?? 'guest';
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 60 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 72 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
@@ -85,7 +186,7 @@ export default function SocialScreen() {
           <ThemedText type="title">{t('social.title')}</ThemedText>
           <TouchableOpacity
             style={[styles.shareButton, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={handleShare}
+            onPress={() => setShowShare(true)}
             activeOpacity={0.7}
           >
             <IconSymbol name="square.and.arrow.up" size={16} color={colors.accent} />
@@ -135,17 +236,12 @@ export default function SocialScreen() {
         </View>
       </ScrollView>
 
-      {/* "Copied" toast */}
-      <Modal visible={showCopied} transparent animationType="fade">
-        <View style={styles.toastWrapper} pointerEvents="none">
-          <View style={[styles.toast, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <IconSymbol name="checkmark.circle.fill" size={18} color={colors.success} />
-            <ThemedText style={[styles.toastText, { color: colors.text }]}>
-              {t('social.shareCopied')}
-            </ThemedText>
-          </View>
-        </View>
-      </Modal>
+      {/* Share Profile Pop-up */}
+      <ShareProfileModal
+        visible={showShare}
+        onClose={() => setShowShare(false)}
+        username={displayUsername}
+      />
     </SafeAreaView>
   );
 }
@@ -223,26 +319,95 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   addFriendText: { fontSize: 11, fontWeight: '600' },
-  // Toast
-  toastWrapper: {
+  // ── Modal ──────────────────────────────────────────────────────────────────
+  modalOverlay: {
     flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
-    alignItems: 'center',
-    paddingBottom: 120,
   },
-  toast: {
+  modalSheet: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+    paddingTop: 12,
+    alignItems: 'center',
+    gap: 12,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    marginBottom: 12,
+  },
+  shareAvatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  shareAvatarText: {
+    fontSize: 32,
+    fontWeight: '700',
+  },
+  shareUsername: {
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  shareTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  shareSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 4,
+  },
+  linkBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 24,
+    borderRadius: 14,
     borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    alignSelf: 'stretch',
+    marginTop: 4,
   },
-  toastText: { fontSize: 14, fontWeight: '600' },
+  linkText: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: 'monospace',
+  },
+  copyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignSelf: 'stretch',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  copyBtnText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  closeBtn: {
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignSelf: 'stretch',
+    alignItems: 'center',
+  },
+  closeBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
 });

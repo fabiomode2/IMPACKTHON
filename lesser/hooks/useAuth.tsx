@@ -1,5 +1,8 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import React from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '@/services/firebase';
 import { loginUser, registerUser, logoutUser, Mode, UserProfile } from '@/services/auth';
 
 export type { Mode };
@@ -27,18 +30,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isOnboarded, setIsOnboarded] = useState(false);
   const [authCompleted, setAuthCompleted] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [mode, setModeState] = useState<Mode>('mid');
   const [user, setUser] = useState<UserProfile | null>(null);
 
-  // [FIREBASE] In real app: subscribe to onAuthStateChanged here and set state accordingly
-  // useEffect(() => {
-  //   const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-  //     if (firebaseUser) { setUser(...); setIsLoggedIn(true); setAuthCompleted(true); }
-  //     else { setUser(null); setIsLoggedIn(false); }
-  //   });
-  //   return unsubscribe;
-  // }, []);
+  // Subscribe to Firebase Auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
+          const data = snap.data();
+          const profile: UserProfile = {
+            uid: firebaseUser.uid,
+            username: data?.username ?? firebaseUser.email?.split('@')[0] ?? 'User',
+            email: firebaseUser.email ?? undefined,
+            createdAt: data?.createdAt?.toDate() ?? new Date(),
+          };
+          setUser(profile);
+          setModeState(data?.mode ?? 'mid');
+          setIsLoggedIn(true);
+          setAuthCompleted(true);
+          setIsOnboarded(true);
+        } catch {
+          // If Firestore fetch fails, still mark as logged in
+          setUser({
+            uid: firebaseUser.uid,
+            username: firebaseUser.email?.split('@')[0] ?? 'User',
+            createdAt: new Date(),
+          });
+          setIsLoggedIn(true);
+          setAuthCompleted(true);
+          setIsOnboarded(true);
+        }
+      } else {
+        setUser(null);
+        setIsLoggedIn(false);
+        // Don't reset authCompleted here — let navigation handle it
+      }
+      setIsLoading(false);
+    });
+
+    return unsubscribe;
+  }, []);
 
   const completeOnboarding = (selectedMode: Mode) => {
     setModeState(selectedMode);
@@ -79,18 +113,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const skipAuth = () => {
     setAuthCompleted(true);
+    setIsLoading(false);
   };
 
   const logout = async () => {
     await logoutUser();
     setUser(null);
     setIsLoggedIn(false);
-    setAuthCompleted(false); // Force back to auth screen
+    setAuthCompleted(false);
   };
 
   const setMode = (newMode: Mode) => {
     setModeState(newMode);
-    // [FIREBASE] saveSettings(user?.uid, { mode: newMode });
   };
 
   return (

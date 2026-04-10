@@ -1,12 +1,10 @@
-import React from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, StyleSheet, LayoutChangeEvent } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { t } from '@/constants/i18n';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const PADDING = 0; // zero since parent already has padding
 const GRID_GAP = 3;
 
 interface CalendarData {
@@ -21,6 +19,11 @@ interface GithubCalendarProps {
 export function GithubCalendar({ data }: GithubCalendarProps) {
   const theme = useColorScheme() ?? 'light';
   const colors = Colors[theme];
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  const onLayout = useCallback((e: LayoutChangeEvent) => {
+    setContainerWidth(e.nativeEvent.layout.width);
+  }, []);
 
   // Fill to exactly 35 cells (5 weeks × 7 days)
   const padded = [...Array(Math.max(0, 35 - data.length)).fill({ date: new Date(0), usageMinutes: -1 }), ...data].slice(-35);
@@ -50,33 +53,37 @@ export function GithubCalendar({ data }: GithubCalendarProps) {
     columns.push(padded.slice(i, i + 7));
   }
 
-  // Compute square size to fill parent exactly
   const numCols = columns.length;
+  // Compute square size from actual measured width
   const totalGap = GRID_GAP * (numCols - 1);
-  const squareSize = Math.floor((SCREEN_WIDTH - 40 - PADDING * 2 - totalGap) / numCols);  // 40 = card padding (20*2)
+  const squareSize = containerWidth > 0
+    ? Math.floor((containerWidth - totalGap) / numCols)
+    : 0;
 
   return (
-    <View style={styles.outer}>
+    <View style={styles.outer} onLayout={onLayout}>
       <ThemedText style={styles.title}>{t('home.consistencyMap')}</ThemedText>
-      <View style={styles.grid}>
-        {columns.map((col, colIdx) => (
-          <View key={colIdx} style={styles.column}>
-            {col.map((day, dayIdx) => (
-              <View
-                key={dayIdx}
-                style={[
-                  styles.square,
-                  {
-                    width: squareSize,
-                    height: squareSize,
-                    backgroundColor: getColor(getIntensity(day.usageMinutes)),
-                  },
-                ]}
-              />
-            ))}
-          </View>
-        ))}
-      </View>
+      {containerWidth > 0 && (
+        <View style={styles.grid}>
+          {columns.map((col, colIdx) => (
+            <View key={colIdx} style={styles.column}>
+              {col.map((day, dayIdx) => (
+                <View
+                  key={dayIdx}
+                  style={[
+                    styles.square,
+                    {
+                      width: squareSize,
+                      height: squareSize,
+                      backgroundColor: getColor(getIntensity(day.usageMinutes)),
+                    },
+                  ]}
+                />
+              ))}
+            </View>
+          ))}
+        </View>
+      )}
       <View style={styles.legend}>
         <ThemedText style={[styles.legendText, { color: colors.textSecondary }]}>{t('home.moreUsage')}</ThemedText>
         {[0, 1, 2, 3, 4].map(i => (
@@ -89,7 +96,7 @@ export function GithubCalendar({ data }: GithubCalendarProps) {
 }
 
 const styles = StyleSheet.create({
-  outer: { gap: 10 },
+  outer: { gap: 10, width: '100%' },
   title: {
     fontSize: 15,
     fontWeight: '700',
@@ -100,6 +107,7 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     gap: GRID_GAP,
+    width: '100%',
   },
   column: {
     gap: GRID_GAP,

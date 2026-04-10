@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View, StyleSheet, FlatList, SafeAreaView,
-  TouchableOpacity, TextInput,
+  TouchableOpacity, TextInput, Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -32,6 +33,7 @@ export default function FollowersScreen() {
   const theme = useColorScheme() ?? 'light';
   const colors = Colors[theme];
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [users, setUsers] = useState<UserRow[]>(MOCK_FOLLOWERS);
   const [search, setSearch] = useState('');
 
@@ -40,17 +42,103 @@ export default function FollowersScreen() {
   );
 
   const toggleFollow = (uid: string) => {
-    // [FIREBASE] sendFriendRequest / unfollowUser(uid)
+    // [FIREBASE] followUser(uid) / unfollowUser(uid)
     setUsers(prev =>
       prev.map(u => u.uid === uid ? { ...u, isFollowing: !u.isFollowing } : u)
     );
   };
 
   const renderItem = ({ item }: { item: UserRow }) => (
+    <FollowerRow
+      item={item}
+      colors={colors}
+      onPress={() => router.push(`/friend/${item.uid}`)}
+      onToggleFollow={() => toggleFollow(item.uid)}
+    />
+  );
+
+  const followingCount = filtered.filter(u => u.isFollowing).length;
+  const noun = filtered.length === 1
+    ? t('followers.followerSingular')
+    : t('followers.followerPlural');
+
+  return (
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      {/* Header */}
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <IconSymbol name="chevron.left" size={22} color={colors.text} />
+        </TouchableOpacity>
+        <ThemedText style={styles.title}>{t('followers.title')}</ThemedText>
+        <View style={{ width: 40 }} />
+      </View>
+
+      {/* Search */}
+      <View style={[styles.searchContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <IconSymbol name="magnifyingglass" size={18} color={colors.textSecondary} />
+        <TextInput
+          style={[styles.searchInput, { color: colors.text }]}
+          placeholder={t('followers.searchPlaceholder')}
+          placeholderTextColor={colors.textSecondary}
+          value={search}
+          onChangeText={setSearch}
+          autoCapitalize="none"
+        />
+        {search.length > 0 && (
+          <TouchableOpacity onPress={() => setSearch('')}>
+            <IconSymbol name="xmark.circle.fill" size={18} color={colors.textSecondary} />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Count pill */}
+      <View style={styles.countRow}>
+        <ThemedText style={[styles.countText, { color: colors.textSecondary }]}>
+          {t('followers.countSummary', {
+            count: filtered.length,
+            noun,
+            following: followingCount,
+          })}
+        </ThemedText>
+      </View>
+
+      <FlatList
+        data={filtered}
+        keyExtractor={item => item.uid}
+        renderItem={renderItem}
+        contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 24 }]}
+        showsVerticalScrollIndicator={false}
+      />
+    </SafeAreaView>
+  );
+}
+
+// ─── Row component with animated follow button ────────────────────────────────
+type AnyColors = { accent: string; card: string; border: string; text: string; textSecondary: string; [key: string]: string };
+
+function FollowerRow({
+  item, colors, onPress, onToggleFollow,
+}: {
+  item: UserRow;
+  colors: AnyColors;
+  onPress: () => void;
+  onToggleFollow: () => void;
+}) {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handleFollowPress = () => {
+    Animated.sequence([
+      Animated.timing(scaleAnim, { toValue: 0.92, duration: 80, useNativeDriver: true }),
+      Animated.timing(scaleAnim, { toValue: 1, duration: 120, useNativeDriver: true }),
+    ]).start();
+    onToggleFollow();
+  };
+
+  return (
     <View style={[styles.row, { borderBottomColor: colors.border }]}>
       <TouchableOpacity
         style={styles.profile}
-        onPress={() => router.push(`/friend/${item.uid}`)}
+        onPress={onPress}
         activeOpacity={0.7}
       >
         <View style={[styles.avatar, { backgroundColor: colors.accent + '33' }]}>
@@ -61,74 +149,33 @@ export default function FollowersScreen() {
         <View>
           <ThemedText style={styles.username}>{item.username}</ThemedText>
           <ThemedText style={[styles.streak, { color: colors.textSecondary }]}>
-            🔥 {item.streakDays} day streak
+            {t('followers.streakLabel', { days: item.streakDays })}
           </ThemedText>
         </View>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[
-          styles.followBtn,
-          item.isFollowing
-            ? { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }
-            : { backgroundColor: colors.accent },
-        ]}
-        onPress={() => toggleFollow(item.uid)}
-        activeOpacity={0.8}
-      >
-        <ThemedText
+      <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+        <TouchableOpacity
           style={[
-            styles.followBtnText,
-            { color: item.isFollowing ? colors.text : '#FFF' },
+            styles.followBtn,
+            item.isFollowing
+              ? { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }
+              : { backgroundColor: colors.accent },
           ]}
+          onPress={handleFollowPress}
+          activeOpacity={0.8}
         >
-          {item.isFollowing ? t('social.unfollow') : t('social.follow')}
-        </ThemedText>
-      </TouchableOpacity>
-    </View>
-  );
-
-  return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <IconSymbol name="chevron.left" size={22} color={colors.text} />
+          <ThemedText
+            style={[
+              styles.followBtnText,
+              { color: item.isFollowing ? colors.text : '#FFF' },
+            ]}
+          >
+            {item.isFollowing ? t('social.unfollow') : t('social.follow')}
+          </ThemedText>
         </TouchableOpacity>
-        <ThemedText style={styles.title}>{t('social.followers')}</ThemedText>
-        <View style={{ width: 40 }} />
-      </View>
-
-      {/* Search */}
-      <View style={[styles.searchContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <IconSymbol name="person.2.fill" size={18} color={colors.textSecondary} />
-        <TextInput
-          style={[styles.searchInput, { color: colors.text }]}
-          placeholder="Search followers…"
-          placeholderTextColor={colors.textSecondary}
-          value={search}
-          onChangeText={setSearch}
-          autoCapitalize="none"
-        />
-      </View>
-
-      {/* Count pill */}
-      <View style={styles.countRow}>
-        <ThemedText style={[styles.countText, { color: colors.textSecondary }]}>
-          {filtered.length} {filtered.length === 1 ? 'follower' : 'followers'}
-          {' · '}
-          {filtered.filter(u => u.isFollowing).length} {t('social.following').toLowerCase()}
-        </ThemedText>
-      </View>
-
-      <FlatList
-        data={filtered}
-        keyExtractor={item => item.uid}
-        renderItem={renderItem}
-        contentContainerStyle={styles.list}
-        showsVerticalScrollIndicator={false}
-      />
-    </SafeAreaView>
+      </Animated.View>
+    </View>
   );
 }
 

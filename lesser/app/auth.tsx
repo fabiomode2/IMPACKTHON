@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { useAuth } from '@/hooks/useAuth';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { t } from '@/constants/i18n';
 
 export default function AuthScreen() {
   const [isLogin, setIsLogin] = useState(true);
@@ -23,7 +24,7 @@ export default function AuthScreen() {
   const handleAction = async () => {
     setError(null);
     if (!usernameInput.trim() || !password.trim()) {
-      setError('Please fill in all fields.');
+      setError(t('auth.fillAllFields'));
       return;
     }
     const success = isLogin
@@ -33,7 +34,7 @@ export default function AuthScreen() {
     if (success) {
       router.replace('/(tabs)/home');
     } else {
-      setError('Something went wrong. Please try again.');
+      setError(t('auth.genericError'));
     }
   };
 
@@ -50,19 +51,17 @@ export default function AuthScreen() {
       >
         <View style={styles.header}>
           <ThemedText type="title" style={styles.title}>
-            {isLogin ? 'Welcome Back' : 'Create Account'}
+            {isLogin ? t('auth.loginTitle') : t('auth.registerTitle')}
           </ThemedText>
           <ThemedText style={[styles.subtitle, { color: colors.textSecondary }]}>
-            {isLogin
-              ? 'Log in to sync your reduction progress with friends.'
-              : 'Sign up to connect with friends and compete.'}
+            {isLogin ? t('auth.loginSubtitle') : t('auth.registerSubtitle')}
           </ThemedText>
         </View>
 
         <View style={styles.form}>
           <TextInput
             style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text }]}
-            placeholder="Username"
+            placeholder={t('auth.usernamePlaceholder')}
             placeholderTextColor={colors.textSecondary}
             value={usernameInput}
             onChangeText={setUsernameInput}
@@ -71,7 +70,7 @@ export default function AuthScreen() {
           />
           <TextInput
             style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text }]}
-            placeholder="Password"
+            placeholder={t('auth.passwordPlaceholder')}
             placeholderTextColor={colors.textSecondary}
             value={password}
             onChangeText={setPassword}
@@ -93,14 +92,14 @@ export default function AuthScreen() {
               <ActivityIndicator color="#FFF" />
             ) : (
               <ThemedText style={styles.buttonText}>
-                {isLogin ? 'Log In' : 'Sign Up'}
+                {isLogin ? t('auth.loginButton') : t('auth.registerButton')}
               </ThemedText>
             )}
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.switchButton} onPress={() => { setIsLogin(!isLogin); setError(null); }}>
             <ThemedText style={{ color: colors.accent }}>
-              {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Log in'}
+              {isLogin ? t('auth.switchToRegister') : t('auth.switchToLogin')}
             </ThemedText>
           </TouchableOpacity>
         </View>
@@ -108,7 +107,7 @@ export default function AuthScreen() {
         <View style={styles.footer}>
           <TouchableOpacity style={styles.skipButton} onPress={handleSkip} disabled={isLoading}>
             <ThemedText style={[styles.skipText, { color: colors.textSecondary }]}>
-              Skip for now
+              {t('auth.skipButton')}
             </ThemedText>
           </TouchableOpacity>
         </View>
@@ -152,4 +151,3 @@ const styles = StyleSheet.create({
   skipButton: { padding: 16 },
   skipText: { fontSize: 16, textDecorationLine: 'underline' },
 });
-

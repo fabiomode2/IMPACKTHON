@@ -6,6 +6,8 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Platform } from "react-native";
+import { t } from "@/constants/i18n";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -33,7 +35,9 @@ export default function TabLayout() {
           bottom: 0,
           left: 0,
           right: 0,
-          elevation: 0,
+          // ─── Android: ensure tab bar is above system gesture/nav area ───
+          elevation: 10,
+          zIndex: 10,
         },
         tabBarLabelStyle: {
           fontSize: 10,
@@ -41,6 +45,8 @@ export default function TabLayout() {
           letterSpacing: 0.2,
           marginTop: 1,
         },
+        // Pass the bottom inset + tab bar height so screens know how much to pad
+        // Each screen accesses this via useSafeAreaInsets() + TAB_BAR_HEIGHT
       }}
     >
       <Tabs.Screen
