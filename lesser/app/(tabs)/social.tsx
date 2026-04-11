@@ -11,7 +11,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { FeedItem } from '@/components/social/FeedItem';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Friend, FeedPost, fetchFollowedFeed, searchUsers, getRecommendedUsers } from '@/services/social';
+import { Friend, FeedPost, fetchFollowedFeed, searchUsers, getRecommendedUsers, AppNotification, onNotificationsChanged, markNotificationsAsRead } from '@/services/social';
 import { useAuth } from '@/hooks/useAuth';
 import { useSocial } from '@/hooks/useSocial';
 import { t } from '@/constants/i18n';
@@ -154,7 +154,7 @@ export default function SocialScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { following, isLoadingFollowers } = useSocial(user?.uid ?? null, user?.username ?? null);
+  const { following, follow, unfollow, isLoadingFollowers } = useSocial(user?.uid ?? null, user?.username ?? null);
 
   const [feed, setFeed] = useState<FeedPost[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -164,7 +164,49 @@ export default function SocialScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Friend[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [toggling, setToggling] = useState<Set<string>>(new Set());
+
+  const handleToggleFollow = async (friendId: string, friendUsername: string, isCurrentlyFollowing: boolean) => {
+    setToggling(prev => new Set(prev).add(friendId));
+    try {
+      if (isCurrentlyFollowing) {
+        await unfollow(friendId);
+      } else {
+        await follow(friendId, friendUsername);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setToggling(prev => {
+        const next = new Set(prev);
+        next.delete(friendId);
+        return next;
+      });
+    }
+  };
   const [recommended, setRecommended] = useState<Friend[]>([]);
+
+  // Notifications state
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    const unsub = onNotificationsChanged(user.uid, (notifs) => {
+      setNotifications(notifs);
+    });
+    return () => unsub();
+  }, [user]);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const openNotifications = async () => {
+    setShowNotifications(true);
+    const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+    if (unreadIds.length > 0 && user) {
+        await markNotificationsAsRead(user.uid, unreadIds);
+    }
+  };
 
   const loadFeed = useCallback(async () => {
     if (!user) return;
@@ -226,16 +268,26 @@ export default function SocialScreen() {
         {/* Header */}
         <View style={styles.header}>
           <ThemedText type="title">Comunidad</ThemedText>
-          <TouchableOpacity
-            style={[styles.shareButton, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={() => setShowShare(true)}
-            activeOpacity={0.7}
-          >
-            <IconSymbol name="person.badge.plus" size={16} color={colors.accent} />
-            <ThemedText style={[styles.shareButtonText, { color: colors.accent }]}>
-              Compartir
-            </ThemedText>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <TouchableOpacity onPress={openNotifications} style={styles.bellBtn}>
+                <IconSymbol name="bell.fill" size={24} color={colors.text} />
+                {unreadCount > 0 && (
+                    <View style={styles.badge}>
+                        <ThemedText style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</ThemedText>
+                    </View>
+                )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.shareButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+              onPress={() => setShowShare(true)}
+              activeOpacity={0.7}
+            >
+              <IconSymbol name="person.badge.plus" size={16} color={colors.accent} />
+              <ThemedText style={[styles.shareButtonText, { color: colors.accent }]}>
+                Compartir
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Search Bar */}
@@ -266,24 +318,51 @@ export default function SocialScreen() {
               <ThemedText style={{ color: colors.textSecondary, marginTop: 10 }}>No se encontraron usuarios.</ThemedText>
             ) : (
               <View style={styles.resultsList}>
-                {searchResults.map(f => (
-                  <TouchableOpacity
-                    key={f.uid}
-                    style={[styles.resultItem, { borderBottomColor: colors.border }]}
-                    onPress={() => {
-                        setSearchQuery('');
-                        router.push(`/friend/${f.uid}`);
-                    }}
-                  >
-                    <View style={[styles.friendAvatarSmall, { backgroundColor: colors.accent + '22' }]}>
-                      <ThemedText style={{ color: colors.accent, fontWeight: '700' }}>{f.username[0].toUpperCase()}</ThemedText>
-                    </View>
-                    <ThemedText style={{ flex: 1, fontWeight: '600' }}>@{f.username}</ThemedText>
-                    <View style={styles.friendStreak}>
-                      <ThemedText style={{ fontSize: 12 }}>🔥 {f.streakDays}d</ThemedText>
-                    </View>
-                  </TouchableOpacity>
-                ))}
+                {searchResults.map(f => {
+                  const isFol = following.some(s => s.uid === f.uid);
+                  const isToggle = toggling.has(f.uid);
+
+                  return (
+                    <TouchableOpacity
+                      key={f.uid}
+                      style={[styles.resultItem, { borderBottomColor: colors.border }]}
+                      onPress={() => {
+                          setSearchQuery('');
+                          router.push(`/friend/${f.uid}`);
+                      }}
+                    >
+                      <View style={[styles.friendAvatarSmall, { backgroundColor: colors.accent + '22' }]}>
+                        <ThemedText style={{ color: colors.accent, fontWeight: '700' }}>{f.username[0].toUpperCase()}</ThemedText>
+                      </View>
+                      <ThemedText style={{ flex: 1, fontWeight: '600', marginRight: 8, paddingRight: 8 }} numberOfLines={1}>
+                        @{f.username}
+                      </ThemedText>
+                      
+                      {f.uid !== user?.uid && (
+                        <TouchableOpacity
+                          style={[
+                            styles.followBtnSmall, 
+                            { 
+                              backgroundColor: isFol ? colors.background : colors.accent,
+                              borderColor: isFol ? colors.border : colors.accent,
+                              borderWidth: 1
+                            }
+                          ]}
+                          onPress={() => handleToggleFollow(f.uid, f.username, isFol)}
+                          disabled={isToggle}
+                        >
+                          {isToggle ? (
+                            <ActivityIndicator size="small" color={isFol ? colors.text : '#FFF'} />
+                          ) : (
+                            <ThemedText style={{ fontSize: 13, fontWeight: '600', color: isFol ? colors.text : '#FFF' }}>
+                              {isFol ? 'Siguiendo' : 'Seguir'}
+                            </ThemedText>
+                          )}
+                        </TouchableOpacity>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             )}
           </View>
@@ -542,6 +621,14 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   linkText: { flex: 1, fontSize: 13, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
+  followBtnSmall: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 85,
+  },
   closeBtn: {
     marginTop: 4,
     paddingVertical: 14,
@@ -551,5 +638,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   closeBtnText: { fontSize: 15, fontWeight: '700' },
+  bellBtn: { position: 'relative', padding: 4 },
+  badge: {
+     position: 'absolute',
+     top: -2,
+     right: -4,
+     backgroundColor: 'red',
+     borderRadius: 10,
+     minWidth: 18,
+     height: 18,
+     justifyContent: 'center',
+     alignItems: 'center',
+     paddingHorizontal: 4,
+     borderWidth: 1.5,
+     borderColor: '#FFF',
+  },
+  badgeText: { color: 'white', fontSize: 10, fontWeight: 'bold' },
+  sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  sheetContent: { borderTopLeftRadius: 32, borderTopRightRadius: 32, minHeight: '50%' },
+  sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 24, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#333' },
+  notifItem: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: StyleSheet.hairlineWidth, gap: 12 },
+  notifIconBg: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+  unreadDot: { width: 10, height: 10, borderRadius: 5 },
 });
 

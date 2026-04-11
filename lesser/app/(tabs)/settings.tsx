@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AccountSection } from '@/components/settings/AccountSection';
 import { ModeSelector } from '@/components/settings/ModeSelector';
 import { WhitelistSection } from '@/components/settings/WhitelistSection';
+import { DevTools } from '@/components/settings/DevTools';
 import { ThemedText } from '@/components/themed-text';
 import { t } from '@/constants/i18n';
 
@@ -25,6 +26,7 @@ export default function SettingsScreen() {
         <AccountSection />
         <ModeSelector />
         <WhitelistSection />
+        <DevTools />
 
         <View style={styles.footer}>
           <ThemedText style={{ color: colors.textSecondary, textAlign: 'center' }}>

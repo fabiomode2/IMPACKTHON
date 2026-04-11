@@ -14,6 +14,7 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getFunctions } from 'firebase/functions';
+import { getDatabase } from 'firebase/database';
 import { FIREBASE_CONFIG } from '@/constants/firebase.config';
 
 const app = getApps().length === 0 ? initializeApp(FIREBASE_CONFIG) : getApp();
@@ -21,5 +22,6 @@ const app = getApps().length === 0 ? initializeApp(FIREBASE_CONFIG) : getApp();
 export const auth      = getAuth(app);
 export const db        = getFirestore(app);
 export const functions = getFunctions(app, 'europe-west1'); // eur3 region
+export const rtdb      = getDatabase(app);
 
 export default app;

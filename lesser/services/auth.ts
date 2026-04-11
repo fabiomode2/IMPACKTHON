@@ -46,6 +46,8 @@ export interface UserProfile {
   email?: string;
   mode: Mode;
   streakDays: number;
+  followersCount?: number;
+  followingCount?: number;
   createdAt: Date;
 }
 
@@ -72,6 +74,8 @@ async function readProfile(uid: string, usernameHint?: string): Promise<UserProf
     email:      data?.email,
     mode:       data?.mode       ?? 'mid',
     streakDays: data?.streakDays ?? 0,
+    followersCount: data?.followersCount ?? 0,
+    followingCount: data?.followingCount ?? 0,
     createdAt:  data?.createdAt?.toDate() ?? new Date(),
   };
 }
@@ -114,12 +118,14 @@ export async function registerUser(username: string, password: string): Promise<
       email,
       mode: 'mid',
       streakDays: 0,
+      followersCount: 0,
+      followingCount: 0,
       createdAt: serverTimestamp(),
     });
 
     return {
       success: true,
-      user: { uid, username: trimmed, email, mode: 'mid', streakDays: 0, createdAt: new Date() },
+      user: { uid, username: trimmed, email, mode: 'mid', streakDays: 0, followersCount: 0, followingCount: 0, createdAt: new Date() },
     };
   } catch (err: unknown) {
     return { success: false, error: friendlyAuthError(err) };
@@ -211,7 +217,14 @@ export async function deleteAccount(
     const credential = EmailAuthProvider.credential(user.email, currentPassword);
     await reauthenticateWithCredential(user, credential);
 
-    await deleteDoc(doc(db, 'users', user.uid));
+    // Attempt to delete the user document. If there are subcollections, Firestore might balk
+    // or leave orphan documents, but we MUST delete the User auth regardless to sever access.
+    try {
+      await deleteDoc(doc(db, 'users', user.uid));
+    } catch (dbErr) {
+      console.warn("Failed to cleanly delete user document, but proceeding with Auth deletion:", dbErr);
+    }
+
     await deleteUser(user);
 
     return { success: true };

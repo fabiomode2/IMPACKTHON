@@ -31,7 +31,7 @@ service cloud.firestore {
 
       match /followers/{followerUid} {
         allow read:  if isAuthed();
-        allow write: if isOwner(followerUid); 
+        allow write: if false; 
       }
 
       // ── /users/{uid}/following/{followedUid} ─────────────────────────────
@@ -41,7 +41,7 @@ service cloud.firestore {
 
       match /following/{followedUid} {
         allow read:  if isAuthed();
-        allow write: if isOwner(uid);
+        allow write: if false;
       }
     }
 
