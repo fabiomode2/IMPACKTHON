@@ -13,7 +13,9 @@ export interface UsageSummary {
   hoursWeek: number;
   hoursMonth: number;
   calendarData: CalendarDay[];
+  rawUsage: Record<string, { totalMinutes: number; apps?: Record<string, number> }>;
 }
+
 
 
 /**
@@ -67,8 +69,10 @@ export function subscribeToUsageData(
       hours24h,
       hoursWeek,
       hoursMonth,
-      calendarData
+      calendarData,
+      rawUsage: dailyUsage
     });
+
 
   });
 }
