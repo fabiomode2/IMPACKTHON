@@ -17,7 +17,6 @@ import {
   deleteUser,
   EmailAuthProvider,
   reauthenticateWithCredential,
-  updatePassword as firebaseUpdatePassword,
   UserCredential,
 } from 'firebase/auth';
 import {
@@ -223,25 +222,6 @@ export async function updateUserProfile(
   }
 }
 
-/**
- * Change the user's password.
- */
-export async function changePassword(
-  currentPassword: string,
-  newPassword: string,
-): Promise<{ success: boolean; error?: string }> {
-  const user = auth.currentUser;
-  if (!user || !user.email) return { success: false, error: 'No autenticado.' };
-
-  try {
-    const credential = EmailAuthProvider.credential(user.email, currentPassword);
-    await reauthenticateWithCredential(user, credential);
-    await firebaseUpdatePassword(user, newPassword);
-    return { success: true };
-  } catch (err: unknown) {
-    return { success: false, error: friendlyAuthError(err) };
-  }
-}
 
 /**
  * Permanently delete the user's account.

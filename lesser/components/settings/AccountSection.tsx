@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View, StyleSheet, TouchableOpacity,
-  Alert, TextInput, Modal, ActivityIndicator,
 } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
@@ -10,71 +9,18 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'expo-router';
 import { t } from '@/constants/i18n';
-import { changePassword } from '@/services/auth';
 
 export function AccountSection() {
   const theme = useColorScheme() ?? 'light';
   const colors = Colors[theme];
-  const { username, isLoggedIn, logout, mode, updateProfile, lastError, isLoading } = useAuth();
+  const { username, isLoggedIn, logout, mode } = useAuth();
   const router = useRouter();
 
   const displayUsername = username || 'Guest';
 
-  // ─── Modals State ─────────────────────────────────────────────────────────
-  const [showUserModal, setShowUserModal] = useState(false);
-  const [newUsername, setNewUsername] = useState('');
-
-  const [showPassModal, setShowPassModal] = useState(false);
-  const [currentPass, setCurrentPass] = useState('');
-  const [newPass, setNewPass] = useState('');
-
-  const [internalLoading, setInternalLoading] = useState(false);
-  const [internalError, setInternalError] = useState<string | null>(null);
-
   const handleLogout = async () => {
     await logout();
     router.replace('/auth');
-  };
-
-  const resetState = () => {
-    setInternalError(null);
-    setInternalLoading(false);
-    setNewUsername('');
-    setCurrentPass('');
-    setNewPass('');
-  };
-
-  const handleUpdateUsername = async () => {
-    if (!newUsername.trim()) return;
-    setInternalLoading(true);
-    const success = await updateProfile({ username: newUsername.trim() });
-    setInternalLoading(false);
-    if (success) {
-      setShowUserModal(false);
-      resetState();
-    } else {
-      setInternalError(lastError || 'Error al actualizar usuario');
-    }
-  };
-
-  const handleUpdatePassword = async () => {
-    if (!currentPass || !newPass) return;
-    setInternalLoading(true);
-    setInternalError(null);
-    try {
-      const res = await changePassword(currentPass, newPass);
-      if (res.success) {
-        setShowPassModal(false);
-        resetState();
-        Alert.alert('Éxito', 'Contraseña actualizada correctamente');
-      } else {
-        setInternalError(res.error || 'Error al actualizar contraseña');
-      }
-    } catch (e) {
-      setInternalError('Errorines inesperados');
-    } finally {
-      setInternalLoading(false);
-    }
   };
 
   const handleDeleteAccountNav = () => {
@@ -106,24 +52,6 @@ export function AccountSection() {
           </View>
         </View>
 
-        {isLoggedIn && (
-          <>
-            <View style={[styles.divider, { backgroundColor: colors.border }]} />
-            <TouchableOpacity style={styles.actionRow} onPress={() => { resetState(); setShowUserModal(true); }}>
-              <IconSymbol name="pencil" size={20} color={colors.icon} />
-              <ThemedText style={styles.actionText}>{t('settings.changeUsername')}</ThemedText>
-              <IconSymbol name="chevron.right" size={18} color={colors.icon} />
-            </TouchableOpacity>
-
-            <View style={[styles.divider, { backgroundColor: colors.border }]} />
-            <TouchableOpacity style={styles.actionRow} onPress={() => { resetState(); setShowPassModal(true); }}>
-              <IconSymbol name="key.fill" size={20} color={colors.icon} />
-              <ThemedText style={styles.actionText}>{t('settings.changePassword')}</ThemedText>
-              <IconSymbol name="chevron.right" size={18} color={colors.icon} />
-            </TouchableOpacity>
-          </>
-        )}
-
         <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
         {isLoggedIn ? (
@@ -147,62 +75,7 @@ export function AccountSection() {
           </TouchableOpacity>
         )}
 
-
       </View>
-
-      {/* ─── Change Username Modal ─────────────────────────────────────── */}
-      <Modal visible={showUserModal} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <ThemedText style={styles.modalTitle}>Cambiar Usuario</ThemedText>
-            <TextInput
-              style={[styles.passwordInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
-              placeholder="Nuevo nombre de usuario"
-              placeholderTextColor={colors.textSecondary}
-              value={newUsername}
-              onChangeText={setNewUsername}
-              autoCapitalize="none"
-            />
-            {internalError && <ThemedText style={[styles.errorText, { color: colors.error }]}>{internalError}</ThemedText>}
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.modalBtn} onPress={() => setShowUserModal(false)}><ThemedText>Cancelar</ThemedText></TouchableOpacity>
-              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: colors.accent }]} onPress={handleUpdateUsername}>
-                {internalLoading ? <ActivityIndicator color="#FFF" /> : <ThemedText style={{ color: '#FFF' }}>Guardar</ThemedText>}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* ─── Change Password Modal ─────────────────────────────────────── */}
-      <Modal visible={showPassModal} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <ThemedText style={styles.modalTitle}>Cambiar Contraseña</ThemedText>
-            <TextInput
-              style={[styles.passwordInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
-              placeholder="Contraseña actual"
-              secureTextEntry
-              value={currentPass}
-              onChangeText={setCurrentPass}
-            />
-            <TextInput
-              style={[styles.passwordInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
-              placeholder="Nueva contraseña"
-              secureTextEntry
-              value={newPass}
-              onChangeText={setNewPass}
-            />
-            {internalError && <ThemedText style={[styles.errorText, { color: colors.error }]}>{internalError}</ThemedText>}
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.modalBtn} onPress={() => setShowPassModal(false)}><ThemedText>Cancelar</ThemedText></TouchableOpacity>
-              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: colors.accent }]} onPress={handleUpdatePassword}>
-                {internalLoading ? <ActivityIndicator color="#FFF" /> : <ThemedText style={{ color: '#FFF' }}>Actualizar</ThemedText>}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -256,54 +129,4 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   actionText: { fontSize: 16, flex: 1 },
-
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  modalCard: {
-    width: '100%',
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 24,
-    gap: 16,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  modalBody: {
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  passwordInput: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 15,
-  },
-  errorText: {
-    fontSize: 13,
-    textAlign: 'center',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 4,
-  },
-  modalBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalBtnDanger: {},
 });

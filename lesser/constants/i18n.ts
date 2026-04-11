@@ -216,8 +216,6 @@ const en = {
     account: 'Account',
     memberSince: 'Member since 2026',
     guestLabel: 'Guest — not synced',
-    changeUsername: 'Change Username',
-    changePassword: 'Change Password',
     logOut: 'Log Out',
     logIn: 'Log In / Sign Up',
     appMode: 'App Mode',
@@ -329,7 +327,7 @@ const es: Strings = {
   settings: {
     title: 'Ajustes', version: 'IMPACKTHON 2026 — {{version}}',
     account: 'Cuenta', memberSince: 'Miembro desde 2026', guestLabel: 'Invitado — no sincronizado',
-    changeUsername: 'Cambiar usuario', changePassword: 'Cambiar contraseña', logOut: 'Cerrar sesión', logIn: 'Iniciar sesión / Registrarse',
+    logOut: 'Cerrar sesión', logIn: 'Iniciar sesión / Registrarse',
     appMode: 'Modo de la app', features: '{{n}} funciones', currentlyActive: 'Activo actualmente', switchTo: 'Cambiar a {{mode}}',
     whitelist: 'Lista blanca de apps', whitelistSubtitle: 'Estas apps son siempre accesibles, incluso en modo Extremo.',
     deleteAccount: 'Eliminar cuenta',
