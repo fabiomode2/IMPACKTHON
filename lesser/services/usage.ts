@@ -31,10 +31,10 @@ export async function fetchUsageStats(uid: string): Promise<UsageStats> {
   // In a real app, calendarData and mostUsedApps would be subcollections.
   // We'll generate some reasonable values if missing for now, 
   // keeping the core stats (streak, 24h) real from the user doc.
-  
+
   return {
-    streakDays:    userData?.streakDays ?? 0,
-    hours24h:      userData?.hours24h   ?? 0,
+    streakDays: userData?.streakDays ?? 0,
+    hours24h: userData?.hours24h ?? 0,
     topPercentage: userData?.topPercentage ?? 50,
     calendarData: Array.from({ length: 30 }, (_, i) => ({
       date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000),
