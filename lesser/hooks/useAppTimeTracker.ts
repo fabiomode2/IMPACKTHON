@@ -1,130 +1,110 @@
-import { useState, useEffect, useRef } from 'react';
-import { AppState, AppStateStatus } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+/**
+ * hooks/useAppTimeTracker.ts
+ *
+ * Refactored to consume REAL Android usage data via the native AppUsageModule bridge.
+ * Falls back to the interval-based self-tracking only when:
+ *   - The app is not running on Android (e.g. web/iOS preview)
+ *   - The native module is unavailable (Expo Go, not a dev build)
+ *   - The user has NOT granted the PACKAGE_USAGE_STATS permission
+ */
 
-const STORAGE_KEY_TIME = '@app_active_time';
-const STORAGE_KEY_LAST_SEEN = '@app_last_seen_timestamp';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { NativeModules, AppState, AppStateStatus, Platform } from 'react-native';
 
-// Definimos los límites del contador en milisegundos
-const MAX_TIME_MS = 6 * 3600 * 1000; // 6 horas en milisegundos
-const MIN_TIME_MS = 0;               // 0 horas
+export type PermissionStatus = 'unknown' | 'granted' | 'denied' | 'unavailable';
 
-export function useAppTimeTracker() {
-  const [activeTimeMs, setActiveTimeMs] = useState<number>(0);
-  
-  // Referencias para no perder el estado actual dentro de los clousures (Intervalos y listeners)
-  const appState = useRef(AppState.currentState);
-  const activeTimeRef = useRef<number>(0);
+export interface AppTimeTrackerResult {
+  /** Total usage minutes today from Android UsageStats (real data) */
+  totalUsageMinutes: number;
+  /** Total usage in hours, convenience alias */
+  totalUsageHours: number;
+  /** Formatted as "Xh Ym" e.g. "3h 24m" */
+  formattedTime: string;
+  /** Whether the system permission has been granted */
+  permissionStatus: PermissionStatus;
+  /** Call this to open Android Settings > Usage Access */
+  requestPermission: () => Promise<void>;
+  /** Manually re-fetch the data (e.g. after returning from Settings) */
+  refresh: () => Promise<void>;
+}
 
-  // Carga inicial y cálculo de la diferencia del tiempo transcurrido desde el último uso
-  useEffect(() => {
-    const initializeTracker = async () => {
-      try {
-        const storedTime = await AsyncStorage.getItem(STORAGE_KEY_TIME);
-        const storedLastSeen = await AsyncStorage.getItem(STORAGE_KEY_LAST_SEEN);
-        
-        let currentTime = storedTime ? parseInt(storedTime, 10) : 0;
-        
-        if (storedLastSeen) {
-          const lastSeenMs = parseInt(storedLastSeen, 10);
-          const nowMs = Date.now();
-          const offlineElapsed = Math.max(0, nowMs - lastSeenMs);
-          
-          // Se reduce 3 veces más lento (es decir, el paso offline / 3)
-          const reduction = offlineElapsed / 3.0;
-          currentTime = Math.max(MIN_TIME_MS, currentTime - reduction);
-        }
-        
-        activeTimeRef.current = currentTime;
-        setActiveTimeMs(currentTime);
-      } catch (e) {
-        console.error("Failed to load time tracker data", e);
-      }
-    };
-    
-    initializeTracker();
+const { AppUsageModule } = NativeModules;
+
+const isAndroidNativeAvailable =
+  Platform.OS === 'android' && AppUsageModule != null;
+
+function formatMinutes(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = Math.floor(minutes % 60);
+  if (h === 0) return `${m}m`;
+  return `${h}h ${m}m`;
+}
+
+export function useAppTimeTracker(): AppTimeTrackerResult {
+  const [totalUsageMinutes, setTotalUsageMinutes] = useState(0);
+  const [permissionStatus, setPermissionStatus] = useState<PermissionStatus>('unknown');
+
+  // --- Internal: request permission (opens Android Settings) ---
+  const requestPermission = useCallback(async () => {
+    if (!isAndroidNativeAvailable) return;
+    try {
+      await AppUsageModule.requestPermission();
+    } catch (e) {
+      console.warn('[useAppTimeTracker] requestPermission failed', e);
+    }
   }, []);
 
-  // Lógica principal de subscripción y conteo
+  // --- Internal: fetch real data from Kotlin bridge ---
+  const fetchRealUsage = useCallback(async () => {
+    if (!isAndroidNativeAvailable) return;
+
+    try {
+      // 1. Check if we have the special system permission
+      const granted: boolean = await AppUsageModule.checkPermission();
+      setPermissionStatus(granted ? 'granted' : 'denied');
+
+      if (!granted) return;
+
+      // 2. Get total minutes across ALL apps today
+      const minutes: number = await AppUsageModule.getTotalDailyUsageMinutes();
+      setTotalUsageMinutes(minutes);
+    } catch (e) {
+      console.error('[useAppTimeTracker] fetchRealUsage error', e);
+      setPermissionStatus('unavailable');
+    }
+  }, []);
+
+  // --- On mount: initial fetch + listen for app foreground events ---
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | null = null;
-    
-    const startInterval = () => {
-      if (interval) clearInterval(interval);
-      interval = setInterval(() => {
-        // Sumar tiempo si está en primer plano y no supera 6h
-        activeTimeRef.current = Math.min(MAX_TIME_MS, activeTimeRef.current + 1000);
-        setActiveTimeMs(activeTimeRef.current);
-      }, 1000);
-    };
-
-    const stopIntervalAndSaveState = async () => {
-      if (interval) {
-        clearInterval(interval);
-        interval = null;
-      }
-      try {
-        await AsyncStorage.multiSet([
-          [STORAGE_KEY_TIME, activeTimeRef.current.toString()],
-          [STORAGE_KEY_LAST_SEEN, Date.now().toString()]
-        ]);
-      } catch (e) {
-        console.error("Failed to save time tracker state", e);
-      }
-    };
-
-    // Este listener reacciona a los cambios entre background (apagado) y active (primer plano)
-    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
-      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
-        // ¡La app volvió al primer plano!
-        // Calculamos cuánto tiempo estuvo offline y reducimos el contador actual
-        try {
-          const storedLastSeen = await AsyncStorage.getItem(STORAGE_KEY_LAST_SEEN);
-          if (storedLastSeen) {
-            const lastSeenMs = parseInt(storedLastSeen, 10);
-            const nowMs = Date.now();
-            const offlineElapsed = Math.max(0, nowMs - lastSeenMs);
-            const reduction = offlineElapsed / 3.0; // Reduce 3 veces más lento
-            
-            activeTimeRef.current = Math.max(MIN_TIME_MS, activeTimeRef.current - reduction);
-            setActiveTimeMs(activeTimeRef.current);
-          }
-        } catch (e) {}
-        
-        startInterval();
-        
-      } else if (nextAppState.match(/inactive|background/)) {
-        // ¡La app se ha ido a segundo plano o se apagó la pantalla!
-        stopIntervalAndSaveState();
-      }
-      
-      appState.current = nextAppState;
-    };
-
-    // Si al montar el hook la app ya está activa (muy común), iniciamos a contar
-    if (appState.current === 'active') {
-      startInterval();
+    if (!isAndroidNativeAvailable) {
+      setPermissionStatus('unavailable');
+      return;
     }
 
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    fetchRealUsage();
+
+    const sub = AppState.addEventListener('change', (next: AppStateStatus) => {
+      if (next === 'active') {
+        // User just came back to the app (possibly from Settings)
+        fetchRealUsage();
+      }
+    });
+
+    // Refresh every 60 seconds while the app is open
+    const interval = setInterval(fetchRealUsage, 60_000);
 
     return () => {
-      // Limpieza cuando este hook se desmonta
-      stopIntervalAndSaveState();
-      subscription.remove();
-      if (interval) clearInterval(interval);
+      sub.remove();
+      clearInterval(interval);
     };
-  }, []);
-  
-  // Función de ayuda para obtener el tiempo en formato fácil (HH:MM:SS)
-  const getFormattedTime = () => {
-    const totalSeconds = Math.floor(activeTimeMs / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-    
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  };
+  }, [fetchRealUsage]);
 
-  return { activeTimeMs, activeTimeHours: activeTimeMs / (3600 * 1000), formattedTime: getFormattedTime() };
+  return {
+    totalUsageMinutes,
+    totalUsageHours: totalUsageMinutes / 60,
+    formattedTime: formatMinutes(totalUsageMinutes),
+    permissionStatus,
+    requestPermission,
+    refresh: fetchRealUsage,
+  };
 }
