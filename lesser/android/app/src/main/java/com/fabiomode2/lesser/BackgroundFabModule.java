@@ -23,9 +23,21 @@ import java.util.TreeMap;
 
 
 public class BackgroundFabModule extends ReactContextBaseJavaModule {
+   private static int modoActual = 1; // 1: Low, 2: Mid, 3: Strong
+
+   public static int getModo() {
+    return modoActual;
+    }
+
    BackgroundFabModule(ReactApplicationContext context) {
        super(context);
    }
+
+    @ReactMethod
+        public void setModoFuncionamiento(int modo) {
+            BackgroundFabModule.modoActual = modo;
+            Log.d("MODULO_NATIVO", "Modo cambiado a: " + modo);
+        }
 
     @ReactMethod
     public void createBackgroundApp(String name) {

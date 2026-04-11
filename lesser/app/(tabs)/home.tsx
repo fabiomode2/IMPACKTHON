@@ -7,18 +7,29 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { t } from '@/constants/i18n';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/hooks/useAuth';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
+import { AppState, NativeModules, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { StreakCounter } from '@/components/home/StreakCounter';
-import { UsageHoursCounter } from '@/components/home/UsageHoursCounter';
-import { TopUsersBadge } from '@/components/home/TopUsersBadge';
 import { GithubCalendar } from '@/components/home/GithubCalendar';
 import { MostUsedApps } from '@/components/home/MostUsedApps';
+import { StreakCounter } from '@/components/home/StreakCounter';
+import { TopUsersBadge } from '@/components/home/TopUsersBadge';
+import { UsageHoursCounter } from '@/components/home/UsageHoursCounter';
 import { ThemedText } from '@/components/themed-text';
 import { useAppTimeTracker } from '@/hooks/useAppTimeTracker';
 import { useUsageData } from '@/hooks/useUsageData';
 import { checkAndPostMilestones } from '@/services/social';
 import { generateMotivationalMessage } from '@/services/llm';
 import { hasPermission, requestPermission, getDailyUsageStats } from '../../modules/expo-app-usage';
+
+import ReactNative from 'react-native';
+const {BackgroundFabModule} = ReactNative.NativeModules;
+
 
 
 function getSavingsText(savedHours: number): string {
@@ -34,6 +45,18 @@ export default function HomeScreen() {
   const theme = useColorScheme() ?? 'light';
   const colors = Colors[theme];
   const { user, mode, username } = useAuth();
+
+  useEffect(() => {
+    // Cada vez que 'mode' cambie en el estado de JS, 
+    // se lo enviamos a Java.
+    // Asumiendo que mode es: 'soft' (1), 'mid' (2), 'hardcore' (3)
+    const modeInt = mode === 'hardcore' ? 3 : mode === 'mid' ? 2 : 1;
+    
+    if (BackgroundFabModule) {
+      BackgroundFabModule.setModoFuncionamiento(modeInt);
+    }
+  }, [mode]); // <--- Se ejecuta cuando cambia 'mode'
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { formattedTime, activeTimeHours } = useAppTimeTracker();
