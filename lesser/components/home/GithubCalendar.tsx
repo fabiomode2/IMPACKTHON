@@ -69,8 +69,7 @@ export function GithubCalendar({ data }: GithubCalendarProps) {
 
   const getIntensity = (minutes: number) => {
     if (minutes < 0) return -1;
-    if (minutes === 0) return 5; // Caso especial: 0 minutos (Negro)
-    if (minutes <= 30) return 4;
+    if (minutes <= 30) return 4; // Incluye el 0 como el verde más oscuro
     if (minutes <= 90) return 3;
     if (minutes <= 180) return 2;
     if (minutes <= 300) return 1;
@@ -78,11 +77,8 @@ export function GithubCalendar({ data }: GithubCalendarProps) {
   };
 
 
-
-
   const getColor = (intensity: number) => {
     if (intensity < 0) return 'transparent';
-    if (intensity === 5) return '#000000'; // Negro para 0 minutos
     switch (intensity) {
       case 4: return colors.success;
       case 3: return colors.success + 'AA';
@@ -92,6 +88,7 @@ export function GithubCalendar({ data }: GithubCalendarProps) {
       default: return colors.border;
     }
   };
+
 
 
 
@@ -151,11 +148,12 @@ export function GithubCalendar({ data }: GithubCalendarProps) {
 
       <View style={styles.legend}>
         <ThemedText style={[styles.legendText, { color: colors.textSecondary }]}>{t('home.lessUsage')}</ThemedText>
-        {[5, 4, 3, 2, 1, 0].map(i => (
+        {[4, 3, 2, 1, 0].map(i => (
           <View key={i} style={[styles.legendSquare, { backgroundColor: getColor(i), borderColor: colors.border }]} />
         ))}
         <ThemedText style={[styles.legendText, { color: colors.textSecondary }]}>{t('home.moreUsage')}</ThemedText>
       </View>
+
 
 
     </View>
