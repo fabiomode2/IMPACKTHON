@@ -11,15 +11,23 @@
  */
 
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { initializeAuth, getReactNativePersistence, getAuth } from 'firebase/auth';
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 import { getFirestore } from 'firebase/firestore';
 import { getFunctions } from 'firebase/functions';
 import { getDatabase } from 'firebase/database';
 import { FIREBASE_CONFIG } from '@/constants/firebase.config';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const app = getApps().length === 0 ? initializeApp(FIREBASE_CONFIG) : getApp();
 
-export const auth      = getAuth(app);
+// Configure Auth with AsyncStorage persistence to fix warning and support session persistence
+export const auth = getApps().length === 0 
+  ? initializeAuth(app, {
+      persistence: getReactNativePersistence(ReactNativeAsyncStorage),
+    }) 
+  : getAuth(app);
+
 export const db        = getFirestore(app);
 export const functions = getFunctions(app, 'europe-west1'); // eur3 region
 export const rtdb      = getDatabase(app);

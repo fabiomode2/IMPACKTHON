@@ -21,6 +21,8 @@ export interface WhitelistedApp {
 export interface UserSettings {
   mode: Mode;
   whitelistedApps: WhitelistedApp[];
+  silentNudgeEnabled: boolean;
+  silentNudgeThreshold: number; // in minutes
 }
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
@@ -35,6 +37,8 @@ const DEFAULT_APPS: WhitelistedApp[] = [
 export const DEFAULT_SETTINGS: UserSettings = {
   mode: 'mid',
   whitelistedApps: DEFAULT_APPS,
+  silentNudgeEnabled: false,
+  silentNudgeThreshold: 10,
 };
 
 // ─── Operations ───────────────────────────────────────────────────────────────
@@ -49,8 +53,10 @@ export async function fetchSettings(uid: string): Promise<UserSettings> {
     if (snap.exists()) {
       const data = snap.data();
       return {
-        mode:            data.mode            ?? DEFAULT_SETTINGS.mode,
-        whitelistedApps: data.whitelistedApps ?? DEFAULT_SETTINGS.whitelistedApps,
+        mode:                 data.mode                 ?? DEFAULT_SETTINGS.mode,
+        whitelistedApps:      data.whitelistedApps      ?? DEFAULT_SETTINGS.whitelistedApps,
+        silentNudgeEnabled:   data.silentNudgeEnabled   ?? DEFAULT_SETTINGS.silentNudgeEnabled,
+        silentNudgeThreshold: data.silentNudgeThreshold ?? DEFAULT_SETTINGS.silentNudgeThreshold,
       };
     }
     return DEFAULT_SETTINGS;
