@@ -8,7 +8,7 @@
  *   - The user has NOT granted the PACKAGE_USAGE_STATS permission
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { NativeModules, AppState, AppStateStatus, Platform } from 'react-native';
 
 export type PermissionStatus = 'unknown' | 'granted' | 'denied' | 'unavailable';

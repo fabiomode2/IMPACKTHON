@@ -172,12 +172,12 @@ export default function HomeScreen() {
         {/* Live Active Timer */}
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border, marginTop: 4, alignItems: 'center' }]}>
           <IconSymbol name="timer" size={24} color={colors.accent} style={{ marginBottom: 4 }} />
-          <ThemedText style={{ fontSize: 14, color: colors.textSecondary }}>Live App Active Time</ThemedText>
+          <ThemedText style={{ fontSize: 14, color: colors.textSecondary }}>Daily Screen Time</ThemedText>
           <ThemedText style={{ fontSize: 34, fontWeight: '800', color: colors.text, marginVertical: 4 }}>
             {formattedTime}
           </ThemedText>
           <ThemedText style={{ fontSize: 12, color: colors.textSecondary }}>
-            {activeTimeHours.toFixed(4)}h / 6.0000h max
+            {totalUsageHours.toFixed(1)}h today
           </ThemedText>
         </View>
       </ScrollView>
