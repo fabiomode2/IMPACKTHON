@@ -1,8 +1,9 @@
 {
   "rules": {
     "users": {
+      ".read": "auth != null",
+      ".indexOn": ["username_lowercase", "streakDays"],
       "$uid": {
-        ".read": "auth != null",
         // Main profile write remains owner-only
         ".write": "auth != null && auth.uid === $uid",
         

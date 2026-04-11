@@ -3,7 +3,7 @@ import {
   View, StyleSheet, FlatList, SafeAreaView,
   TouchableOpacity, TextInput, Animated, ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
@@ -22,6 +22,7 @@ interface UserRow {
 }
 
 export default function FollowersScreen() {
+  const params = useLocalSearchParams<{ tab?: 'followers' | 'following' }>();
   const theme = useColorScheme() ?? 'light';
   const colors = Colors[theme];
   const router = useRouter();
@@ -29,7 +30,7 @@ export default function FollowersScreen() {
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState<Friend[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [activeTab, setActiveTab] = useState<'followers' | 'following'>('following');
+  const [activeTab, setActiveTab] = useState<'followers' | 'following'>(params.tab || 'followers');
 
   const { user } = useAuth();
   const myUid = user?.uid ?? null;
@@ -131,7 +132,7 @@ export default function FollowersScreen() {
         <IconSymbol name="magnifyingglass" size={18} color={colors.textSecondary} />
         <TextInput
           style={[styles.searchInput, { color: colors.text }]}
-          placeholder={t('followers.searchPlaceholder')}
+          placeholder="Buscar amigos..."
           placeholderTextColor={colors.textSecondary}
           value={search}
           onChangeText={setSearch}
@@ -172,10 +173,13 @@ export default function FollowersScreen() {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.empty}>
+              <View style={[styles.emptyIconContainer, { backgroundColor: colors.card }]}>
+                <IconSymbol name="person.2.slash" size={32} color={colors.textSecondary + '60'} />
+              </View>
               <ThemedText style={[styles.emptyText, { color: colors.textSecondary }]}>
                 {search.length >= 2 
-                  ? isSearching ? 'Searching...' : 'No users found matching "' + search + '"'
-                  : t('followers.noFollowers')}
+                  ? isSearching ? 'Buscando...' : 'No se encontraron usuarios.'
+                  : activeTab === 'followers' ? 'Aún no tienes seguidores.' : 'No sigues a nadie todavía.'}
               </ThemedText>
             </View>
           }
@@ -282,38 +286,39 @@ const styles = StyleSheet.create({
   countText: { fontSize: 13 },
   list: { paddingBottom: 40 },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  empty: { paddingTop: 60, alignItems: 'center' },
-  emptyText: { fontSize: 15 },
+  empty: { paddingTop: 100, alignItems: 'center', gap: 16 },
+  emptyIconContainer: { width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center' },
+  emptyText: { fontSize: 16, fontWeight: '500', textAlign: 'center', maxWidth: '80%' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   profile: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 16,
     flex: 1,
   },
   avatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  initial: { fontSize: 20, fontWeight: '700' },
-  username: { fontSize: 15, fontWeight: '600' },
-  streak: { fontSize: 12, marginTop: 2 },
+  initial: { fontSize: 22, fontWeight: '800' },
+  username: { fontSize: 16, fontWeight: '700' },
+  streak: { fontSize: 13, marginTop: 2 },
   followBtn: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 20,
-    minWidth: 90,
+    minWidth: 100,
     alignItems: 'center',
   },
-  followBtnText: { fontSize: 13, fontWeight: '700' },
+  followBtnText: { fontSize: 14, fontWeight: '700' },
 });
