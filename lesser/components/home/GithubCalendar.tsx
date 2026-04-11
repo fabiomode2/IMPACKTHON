@@ -69,12 +69,13 @@ export function GithubCalendar({ data }: GithubCalendarProps) {
 
   const getIntensity = (minutes: number) => {
     if (minutes < 0) return -1;
-    if (minutes <= 30) return 4; // Incluye el 0 como el verde más oscuro
-    if (minutes <= 90) return 3;
+    if (minutes <= 30) return 0; // Poco uso => Verde muy claro
+    if (minutes <= 90) return 1;
     if (minutes <= 180) return 2;
-    if (minutes <= 300) return 1;
-    return 0;
+    if (minutes <= 300) return 3;
+    return 4; // Mucho uso => Verde oscuro
   };
+
 
 
   const getColor = (intensity: number) => {
@@ -148,7 +149,7 @@ export function GithubCalendar({ data }: GithubCalendarProps) {
 
       <View style={styles.legend}>
         <ThemedText style={[styles.legendText, { color: colors.textSecondary }]}>{t('home.lessUsage')}</ThemedText>
-        {[4, 3, 2, 1, 0].map(i => (
+        {[0, 1, 2, 3, 4].map(i => (
           <View key={i} style={[styles.legendSquare, { backgroundColor: getColor(i), borderColor: colors.border }]} />
         ))}
         <ThemedText style={[styles.legendText, { color: colors.textSecondary }]}>{t('home.moreUsage')}</ThemedText>

@@ -12,7 +12,9 @@ export interface UsageSummary {
   hours24h: number;
   hoursWeek: number;
   hoursMonth: number;
+  hours6Months: number;
   calendarData: CalendarDay[];
+
   rawUsage: Record<string, { totalMinutes: number; apps?: Record<string, number> }>;
 }
 
@@ -64,6 +66,8 @@ export function subscribeToUsageData(
     const hours24h = (dailyUsage[todayStr]?.totalMinutes || 0) / 60;
     const hoursWeek = getTotalMinutes(7);
     const hoursMonth = getTotalMinutes(30);
+    const hours6Months = getTotalMinutes(180);
+
 
     // 2. Generate 35 days for the GithubCalendar
     const calendarData: CalendarDay[] = [];
@@ -84,7 +88,9 @@ export function subscribeToUsageData(
       hours24h,
       hoursWeek,
       hoursMonth,
+      hours6Months,
       calendarData,
+
       rawUsage: dailyUsage
     });
 

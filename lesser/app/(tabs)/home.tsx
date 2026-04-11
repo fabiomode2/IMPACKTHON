@@ -42,7 +42,8 @@ export default function HomeScreen() {
   const usageHours24h = stats?.hours24h ?? 0;
   const usageHoursWeek = stats?.hoursWeek ?? 0;
   const usageHoursMonth = stats?.hoursMonth ?? 0;
-  const usageHours6Months = 0; // Future enhancement
+  const usageHours6Months = stats?.hours6Months ?? 0;
+
   const topPercentage = stats?.topPercentage ?? 50;
 
   useEffect(() => {

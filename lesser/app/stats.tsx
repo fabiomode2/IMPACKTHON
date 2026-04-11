@@ -67,19 +67,40 @@ function getChartData(dailyUsage: Record<string, { totalMinutes: number }>, peri
       break;
     }
     case 'month': {
-      // Group into 4 weeks
-      for (let w = 3; w >= 0; w--) {
-        let weekMins = 0;
-        for (let d = 0; d < 7; d++) {
-          const target = new Date(now);
-          target.setDate(now.getDate() - (w * 7 + d));
-          const targetStr = formatLocalISO(target);
-          weekMins += dailyUsage[targetStr]?.totalMinutes || 0;
+      const year = now.getFullYear();
+      const month = now.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      const weeks: { mins: number; days: number }[] = [];
+      let currentWeekMins = 0;
+      let currentWeekDayCount = 0;
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const date = new Date(year, month, d);
+        const dayOfWeek = date.getDay(); // 0 (Sunday) to 6 (Saturday)
+
+        const dStr = formatLocalISO(date);
+        currentWeekMins += dailyUsage[dStr]?.totalMinutes || 0;
+        currentWeekDayCount++;
+
+        // End week if it's Sunday (0) or the last day of the month
+        if (dayOfWeek === 0 || d === daysInMonth) {
+          weeks.push({ mins: currentWeekMins, days: currentWeekDayCount });
+          currentWeekMins = 0;
+          currentWeekDayCount = 0;
         }
-        data.push({ label: `W${4 - w}`, hours: weekMins / (60 * 7) }); // Avg per day in that week
       }
+
+      // Map weeks to chart data
+      weeks.forEach((w, i) => {
+        data.push({
+          label: `W${i + 1}`,
+          hours: w.mins / (60 * w.days), // Average hours per day in that calendar week
+        });
+      });
       break;
     }
+
     case '3months': {
       for (let m = 2; m >= 0; m--) {
         const target = new Date(now.getFullYear(), now.getMonth() - m, 1);
