@@ -1,32 +1,68 @@
-import * as TaskManager from 'expo-task-manager';
-import { Platform } from 'react-native';
+import { Platform, NativeModules } from 'react-native';
+import BackgroundJob from 'react-native-background-actions';
 import { silentNudgeService } from './silentNudgeService';
 
 /**
  * services/backgroundTasks.ts
  *
- * Registration of background tasks for the app.
+ * Registration of persistent foreground service for the app.
  */
 
-export const SILENT_NUDGE_TASK = 'BACKGROUND_SILENT_NUDGE';
+const { OverlayModule } = NativeModules;
 
-if (Platform.OS === 'android') {
-  TaskManager.defineTask(SILENT_NUDGE_TASK, async ({ data, error, executionContext }) => {
-    if (error) {
-      console.error('[BackgroundTasks] Error in silent nudge task:', error);
-      return;
-    }
-    
-    // This is where external foreground monitoring would plug in.
-    // For now, it keeps the service context alive.
-    // Note: To keep a loop running reliably on Android while the app is backgrounded,
-    // a Foreground Service is often preferred over simple BackgroundFetch.
-  });
-}
+const sleep = (time: number) => new Promise<void>((resolve) => setTimeout(() => resolve(), time));
+
+// Esta es la tarea que corrrerá eternamente en segundo plano.
+const backgroundTask = async (taskDataArguments: any) => {
+    // Al arrancar el servicio en segundo plano, empezamos el bucle de "SilentNudge".
+    // Esto mantendrá la app viva y ejecutará la lógica de reducción de volumen o pantalla apagada.
+    await new Promise<void>(async (resolve) => {
+        // En un caso real, el Loop debe reaccionar a un tracker. 
+        // Como simplificación inicial, encendemos el modo debugLoop para que actúe indefinidamente
+        // o llamamos al nudgeService a que evalúe periodicamente.
+        
+        while (BackgroundJob.isRunning()) {
+            // Emulamos notificar uso, esto internamente decidirá si se apaga audio o lanza overlay
+            // Llamamos a la lógica conectando el overlay aquí en vez de solo volumen:
+            await silentNudgeService.tickBackground();
+            
+            await sleep(10000); // Evalúa cada 10 segundos
+        }
+        resolve();
+    });
+};
+
+const options = {
+    taskName: 'LesserBackgroundMonitor',
+    taskTitle: 'Monitor de Uso Activo',
+    taskDesc: 'Evaluando tiempo de pantalla',
+    taskIcon: {
+        name: 'ic_launcher',
+        type: 'mipmap',
+    },
+    color: '#000000',
+    linkingURI: 'lesser://chat/jane',
+    parameters: {
+        delay: 5000,
+    },
+};
 
 export async function registerAllBackgroundTasks() {
   if (Platform.OS !== 'android') return;
   
-  // Note: Actual task invocation often happens via BackgroundFetch or 
-  // custom native triggers. For now, we define the task so it's ready.
+  if (!BackgroundJob.isRunning()) {
+      try {
+          console.log("Iniciando Foreground Service...");
+          await BackgroundJob.start(backgroundTask, options);
+      } catch (e) {
+          console.error("No se pudo iniciar el background job", e);
+      }
+  }
+}
+
+export function stopBackgroundTasks() {
+    if (BackgroundJob.isRunning()) {
+        BackgroundJob.stop();
+        if (OverlayModule) OverlayModule.stopOverlay();
+    }
 }

@@ -57,13 +57,7 @@ function RootLayoutNav() {
     // Initial silent nudge check if user is logged in
     const user = firebaseAuth.currentUser;
     if (user && Platform.OS === 'android') {
-      fetchSettings(user.uid).then(settings => {
-        if (settings.mode === 'soft' && settings.silentNudgeEnabled) {
-          // Placeholder usage for testing - in production, this will be 
-          // driven by the usage detection service.
-          silentNudgeService.notifyForegroundUsage(1); 
-        }
-      });
+      silentNudgeService.tickBackground();
     }
   }, []);
 
