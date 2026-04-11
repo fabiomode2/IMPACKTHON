@@ -20,7 +20,10 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.lesser"
+      "package": "com.fabiomode2.lesser",
+      "permissions": [
+        "android.permission.PACKAGE_USAGE_STATS"
+      ]
     },
     "web": {
       "output": "static",
@@ -28,6 +31,7 @@
     },
     "plugins": [
       "expo-router",
+      "./withAppUsage",
       [
         "expo-splash-screen",
         {
@@ -39,8 +43,7 @@
             "backgroundColor": "#000000"
           }
         }
-      ],
-      "./withAppUsage.js"
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
