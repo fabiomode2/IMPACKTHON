@@ -30,6 +30,6 @@ export const auth = getApps().length === 0
 
 export const db        = getFirestore(app);
 export const functions = getFunctions(app, 'europe-west1'); // eur3 region
-export const rtdb      = getDatabase(app);
+export const rtdb      = getDatabase(app, FIREBASE_CONFIG.databaseURL);
 
 export default app;
