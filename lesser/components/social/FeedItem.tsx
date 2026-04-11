@@ -88,7 +88,7 @@ export function FeedItem({ data }: FeedItemProps) {
         {data.message && (
           <View style={[styles.messageBox, { backgroundColor: colors.background + '50' }]}>
             <ThemedText style={[styles.message, { color: colors.textSecondary }]}>
-              "{data.message}"
+              &ldquo;{data.message}&rdquo;
             </ThemedText>
           </View>
         )}

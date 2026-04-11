@@ -1,5 +1,5 @@
-import { doc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from './firebase';
+import { rtdb } from './firebase';
+import { ref, get } from 'firebase/database';
 
 export interface DayUsage {
   date: Date;
@@ -25,8 +25,8 @@ export interface UsageStats {
  * Reads summary data from /users/{uid} and app usage from subcollections.
  */
 export async function fetchUsageStats(uid: string): Promise<UsageStats> {
-  const userSnap = await getDoc(doc(db, 'users', uid));
-  const userData = userSnap.data();
+  const userSnap = await get(ref(rtdb, `users/${uid}`));
+  const userData = userSnap.val();
 
   // In a real app, calendarData and mostUsedApps would be subcollections.
   // We'll generate some reasonable values if missing for now, 

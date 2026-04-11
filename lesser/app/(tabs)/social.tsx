@@ -14,6 +14,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Friend, FeedPost, fetchFollowedFeed, searchUsers, getRecommendedUsers, AppNotification, onNotificationsChanged, markNotificationsAsRead } from '@/services/social';
 import { useAuth } from '@/hooks/useAuth';
 import { useSocial } from '@/hooks/useSocial';
+import { UserDetailSheet } from '@/components/social/UserDetailSheet';
 import { t } from '@/constants/i18n';
 
 // ─── Friend Card ─────────────────────────────────────────────────────────
@@ -160,30 +161,13 @@ export default function SocialScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showShare, setShowShare] = useState(false);
 
-  // Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Friend[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [toggling, setToggling] = useState<Set<string>>(new Set());
-
-  const handleToggleFollow = async (friendId: string, friendUsername: string, isCurrentlyFollowing: boolean) => {
-    setToggling(prev => new Set(prev).add(friendId));
-    try {
-      if (isCurrentlyFollowing) {
-        await unfollow(friendId);
-      } else {
-        await follow(friendId, friendUsername);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setToggling(prev => {
-        const next = new Set(prev);
-        next.delete(friendId);
-        return next;
-      });
-    }
-  };
+  
+  // Sheet state
+  const [selectedUser, setSelectedUser] = useState<{ uid: string; username: string } | null>(null);
+  const [showSheet, setShowSheet] = useState(false);
   const [recommended, setRecommended] = useState<Friend[]>([]);
 
   // Notifications state
@@ -212,7 +196,32 @@ export default function SocialScreen() {
     if (!user) return;
     try {
       const posts = await fetchFollowedFeed(user.uid);
-      setFeed(posts);
+      if (posts.length === 0) {
+        // Mock posts for demonstration
+        setFeed([
+          {
+            id: 'mock1',
+            uid: '123',
+            username: 'alex_growth',
+            type: 'STREAK',
+            days: 12,
+            timestamp: 'Hace 2 horas',
+            message: 'Manteniendo el enfoque a tope.'
+          },
+          {
+            id: 'mock2',
+            uid: '456',
+            username: 'maria_less',
+            type: 'USAGE_REDUCTION',
+            value: 40,
+            days: 0,
+            timestamp: 'Hace 5 horas',
+            subtext: 'Ganando tiempo real.'
+          }
+        ] as any);
+      } else {
+        setFeed(posts);
+      }
     } catch (e) {
       console.error('Feed load failed:', e);
     }
@@ -284,10 +293,28 @@ export default function SocialScreen() {
             >
               <IconSymbol name="person.badge.plus" size={16} color={colors.accent} />
               <ThemedText style={[styles.shareButtonText, { color: colors.accent }]}>
-                Compartir
+                Invitar
               </ThemedText>
             </TouchableOpacity>
           </View>
+        </View>
+
+        {/* Quick Stats Cards */}
+        <View style={styles.statsOverview}>
+          <TouchableOpacity 
+            style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={() => router.push('/followers')}
+          >
+            <ThemedText style={[styles.statNumber, { color: colors.accent }]}>{following.length}</ThemedText>
+            <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>Siguiendo</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={() => router.push('/followers')}
+          >
+            <ThemedText style={[styles.statNumber, { color: colors.success }]}>{followers.length}</ThemedText>
+            <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>Seguidores</ThemedText>
+          </TouchableOpacity>
         </View>
 
         {/* Search Bar */}
@@ -319,47 +346,22 @@ export default function SocialScreen() {
             ) : (
               <View style={styles.resultsList}>
                 {searchResults.map(f => {
-                  const isFol = following.some(s => s.uid === f.uid);
-                  const isToggle = toggling.has(f.uid);
-
                   return (
                     <TouchableOpacity
                       key={f.uid}
                       style={[styles.resultItem, { borderBottomColor: colors.border }]}
                       onPress={() => {
-                          setSearchQuery('');
-                          router.push(`/friend/${f.uid}`);
+                          setSelectedUser({ uid: f.uid, username: f.username });
+                          setShowSheet(true);
                       }}
                     >
                       <View style={[styles.friendAvatarSmall, { backgroundColor: colors.accent + '22' }]}>
                         <ThemedText style={{ color: colors.accent, fontWeight: '700' }}>{f.username[0].toUpperCase()}</ThemedText>
                       </View>
-                      <ThemedText style={{ flex: 1, fontWeight: '600', marginRight: 8, paddingRight: 8 }} numberOfLines={1}>
+                      <ThemedText style={{ flex: 1, fontWeight: '600' }} numberOfLines={1}>
                         @{f.username}
                       </ThemedText>
-                      
-                      {f.uid !== user?.uid && (
-                        <TouchableOpacity
-                          style={[
-                            styles.followBtnSmall, 
-                            { 
-                              backgroundColor: isFol ? colors.background : colors.accent,
-                              borderColor: isFol ? colors.border : colors.accent,
-                              borderWidth: 1
-                            }
-                          ]}
-                          onPress={() => handleToggleFollow(f.uid, f.username, isFol)}
-                          disabled={isToggle}
-                        >
-                          {isToggle ? (
-                            <ActivityIndicator size="small" color={isFol ? colors.text : '#FFF'} />
-                          ) : (
-                            <ThemedText style={{ fontSize: 13, fontWeight: '600', color: isFol ? colors.text : '#FFF' }}>
-                              {isFol ? 'Siguiendo' : 'Seguir'}
-                            </ThemedText>
-                          )}
-                        </TouchableOpacity>
-                      )}
+                      <IconSymbol name="chevron.right" size={16} color={colors.textSecondary} />
                     </TouchableOpacity>
                   );
                 })}
@@ -440,6 +442,13 @@ export default function SocialScreen() {
         onClose={() => setShowShare(false)}
         username={displayUsername}
       />
+
+      <UserDetailSheet 
+        visible={showSheet}
+        onClose={() => setShowSheet(false)}
+        userUid={selectedUser?.uid ?? null}
+        username={selectedUser?.username ?? null}
+      />
     </SafeAreaView>
   );
 }
@@ -466,6 +475,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   shareButtonText: { fontSize: 13, fontWeight: '700' },
+  statsOverview: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    gap: 4,
+  },
+  statNumber: {
+    fontSize: 22,
+    fontWeight: '800',
+  },
+  statLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
