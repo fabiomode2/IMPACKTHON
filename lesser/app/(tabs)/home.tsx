@@ -1,3 +1,10 @@
+import React, { useEffect, useState, useMemo } from 'react';
+import { StyleSheet, ScrollView, SafeAreaView, View, TouchableOpacity, ActivityIndicator, AppState, NativeModules, Platform } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '@/hooks/useAuth';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { t } from '@/constants/i18n';
 import { Colors } from '@/constants/theme';
@@ -17,6 +24,8 @@ import { ThemedText } from '@/components/themed-text';
 import { useAppTimeTracker } from '@/hooks/useAppTimeTracker';
 import { useUsageData } from '@/hooks/useUsageData';
 import { checkAndPostMilestones } from '@/services/social';
+import { generateMotivationalMessage } from '@/services/llm';
+import { hasPermission, requestPermission, getDailyUsageStats } from '../../modules/expo-app-usage';
 
 import ReactNative from 'react-native';
 const {BackgroundFabModule} = ReactNative.NativeModules;
@@ -53,49 +62,41 @@ export default function HomeScreen() {
   const { formattedTime, activeTimeHours } = useAppTimeTracker();
   const { data: stats, loading } = useUsageData(user?.uid);
 
-  // Stats from RTDB
   const streakDays = stats?.streakDays ?? 0;
-  const usageHours24h = stats?.hours24h ?? 0;
   const usageHoursWeek = stats?.hoursWeek ?? 0;
   const usageHoursMonth = stats?.hoursMonth ?? 0;
   const usageHours6Months = stats?.hours6Months ?? 0;
   const topPercentage = stats?.topPercentage ?? 50;
 
-  const [hasUsagePermission, setHasUsagePermission] = useState<boolean>(true);
-  const [realUsageHours24h, setRealUsageHours24h] = useState<number>(usageHours24h);
+  const [hasUsagePerm, setHasUsagePerm] = React.useState(true);
+  const [realUsageHours24h, setRealUsageHours24h] = React.useState(0);
+  const [realMostUsedApps, setRealMostUsedApps] = React.useState<any[]>([]);
 
   useEffect(() => {
-    const { AppUsageModule } = NativeModules;
-
-    async function fetchStats() {
-      if (!AppUsageModule) return;
+    const checkPerm = () => {
       try {
-        const permitted = await AppUsageModule.checkPermission();
-        setHasUsagePermission(permitted);
-        if (permitted) {
-          const stats = await AppUsageModule.getDailyUsageStats();
-          if (stats && Array.isArray(stats)) {
-            // Sum all usageTime (which is in minutes) and convert to hours
-            const totalMinutes = stats.reduce((acc: number, app: any) => acc + (app.usageTime || 0), 0);
-            setRealUsageHours24h(totalMinutes / 60);
+        const perm = hasPermission();
+        setHasUsagePerm(perm);
+        if (perm) {
+          const usageStats = getDailyUsageStats();
+          setRealUsageHours24h(usageStats.totalHours || 0);
+          if (usageStats.apps && usageStats.apps.length > 0) {
+            setRealMostUsedApps(usageStats.apps);
           }
         }
       } catch (e) {
-        console.error("Error fetching usage stats", e);
+        console.warn("Usage Stats not available:", e);
       }
-    }
-
-    fetchStats();
+    };
+    checkPerm();
 
     const subscription = AppState.addEventListener('change', nextAppState => {
-      if (nextAppState === 'active') fetchStats();
+      if (nextAppState === 'active') { checkPerm(); }
     });
-
-    return () => {
-      subscription.remove();
-    };
+    return () => subscription.remove();
   }, []);
 
+  const usageHours24h = realUsageHours24h > 0 ? realUsageHours24h : (stats?.hours24h ?? 0);
 
   useEffect(() => {
     if (user && stats) {
@@ -103,24 +104,46 @@ export default function HomeScreen() {
     }
   }, [user, streakDays, topPercentage, stats]);
 
+
   const goalHours = 4;
   const savedToday = Math.max(0, goalHours - usageHours24h);
   const savedWeek = Math.max(0, (goalHours * 7) - usageHoursWeek);
   const savedMonth = Math.max(0, (goalHours * 30) - usageHoursMonth);
   const savingsText = getSavingsText(savedWeek);
+  
+  const [aiMessage, setAiMessage] = React.useState<string | null>(null);
 
-  const calendarData = useMemo(() => Array.from({ length: 35 }, (_, i) => ({
-    date: new Date(Date.now() - (34 - i) * 24 * 60 * 60 * 1000),
-    usageMinutes: Math.floor(Math.random() * 140),
-  })), []);
+  useEffect(() => {
+    async function loadAIMessage() {
+      const stats = {
+        savedHoursWeek: savedWeek,
+        streakDays: streakDays,
+        usageHours24h: usageHours24h,
+        goalHours: goalHours,
+        topPercentage: topPercentage,
+      };
+      const appUsages = mostUsedApps.map((app) => ({
+        name: app.name,
+        minutes: app.usageTime,
+      }));
+      const msg = await generateMotivationalMessage(username ?? 'Usuario', mode, stats, appUsages);
+      setAiMessage(msg);
+    }
+    loadAIMessage();
+  }, [savedWeek, streakDays, username, mode, usageHours24h, goalHours, topPercentage]);
 
-  const mostUsedApps = [
+  const calendarData = stats?.calendarData || [];
+
+
+  const fallbackMostUsedApps = [
     { name: 'Instagram', usageTime: 120, icon: 'camera' },
     { name: 'TikTok', usageTime: 95, icon: 'music-note' },
     { name: 'WhatsApp', usageTime: 60, icon: 'message-square' },
     { name: 'YouTube', usageTime: 45, icon: 'tv' },
     { name: 'Twitter/X', usageTime: 30, icon: 'message-circle' },
   ];
+  
+  const mostUsedApps = realMostUsedApps.length > 0 ? realMostUsedApps : fallbackMostUsedApps;
 
 
   return (
@@ -148,6 +171,43 @@ export default function HomeScreen() {
               {t('home.statsButton')}
             </ThemedText>
           </TouchableOpacity>
+        </View>
+
+        {/* Permission Request Banner */}
+        {!hasUsagePerm && (
+          <TouchableOpacity
+            style={[styles.section, { backgroundColor: colors.accent + '20', borderColor: colors.accent }]}
+            onPress={() => requestPermission()}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <IconSymbol name="exclamationmark.triangle.fill" size={24} color={colors.accent} />
+              <View style={{ flex: 1 }}>
+                <ThemedText style={{ fontWeight: 'bold', color: colors.text }}>Activar Estadísticas</ThemedText>
+                <ThemedText style={{ fontSize: 13, color: colors.textSecondary }}>
+                  Lesser necesita "Acceso de uso" para medir tu tiempo de pantalla. Toca aquí para activarlo en Ajustes.
+                </ThemedText>
+              </View>
+            </View>
+          </TouchableOpacity>
+        )}
+
+        {/* AI Motivational Reserved Space */}
+        <View style={[styles.aiCard, { backgroundColor: colors.card, borderColor: aiMessage ? colors.accent + '30' : colors.border }]}>
+          <View style={styles.aiHeader}>
+            <View style={[styles.aiIconContainer, { backgroundColor: colors.accent + '20' }]}>
+              <IconSymbol name="sparkles" size={14} color={colors.accent} />
+            </View>
+            <ThemedText style={[styles.aiTitle, { color: colors.accent }]}>Lesser AI Insight</ThemedText>
+            {!aiMessage && <ActivityIndicator size="small" color={colors.accent} />}
+          </View>
+          {aiMessage ? (
+            <ThemedText style={styles.aiContent}>{aiMessage}</ThemedText>
+          ) : (
+            <View style={styles.aiSkeletonContainer}>
+              <View style={[styles.aiSkeleton, { width: '90%' }]} />
+              <View style={[styles.aiSkeleton, { width: '40%' }]} />
+            </View>
+          )}
         </View>
 
         {/* Streak */}
@@ -207,7 +267,7 @@ export default function HomeScreen() {
             </View>
           </View>
           <ThemedText style={styles.savingsComparison}>
-            {t('home.timeSavedComparison', { what: savingsText })}
+            {t('home.timeSavedComparison', { what: getSavingsText(savedWeek) })}
           </ThemedText>
         </TouchableOpacity>
 
@@ -306,5 +366,43 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 20,
     borderWidth: 1,
+  },
+  aiCard: {
+    padding: 20,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    gap: 12,
+    borderStyle: 'dashed',
+  },
+  aiHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  aiIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  aiTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+  },
+  aiContent: {
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: '500',
+  },
+  aiSkeletonContainer: {
+    gap: 8,
+  },
+  aiSkeleton: {
+    height: 12,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    borderRadius: 6,
   },
 });

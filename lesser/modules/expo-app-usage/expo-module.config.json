@@ -1,0 +1,7 @@
+{
+  "name": "ExpoAppUsage",
+  "platforms": ["android"],
+  "android": {
+    "modules": ["expo.modules.appusage.ExpoAppUsageModule"]
+  }
+}
