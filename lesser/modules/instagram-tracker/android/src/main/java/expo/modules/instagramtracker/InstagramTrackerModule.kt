@@ -65,7 +65,7 @@ class InstagramTrackerModule : Module() {
       try {
         val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
         val endTime = System.currentTimeMillis()
-        val beginTime = endTime - 10000 // Last 10 seconds is usually enough for the last event
+        val beginTime = endTime - 1000L * 60 * 60 * 24 // Last 24 hours is safer for idle sessions
         
         val usageEvents = usageStatsManager.queryEvents(beginTime, endTime)
         val event = android.app.usage.UsageEvents.Event()
