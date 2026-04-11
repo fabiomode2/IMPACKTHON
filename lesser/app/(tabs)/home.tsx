@@ -15,7 +15,9 @@ import { GithubCalendar } from '@/components/home/GithubCalendar';
 import { MostUsedApps } from '@/components/home/MostUsedApps';
 import { ThemedText } from '@/components/themed-text';
 import { useAppTimeTracker } from '@/hooks/useAppTimeTracker';
+import { useUsageData } from '@/hooks/useUsageData';
 import { checkAndPostMilestones } from '@/services/social';
+
 
 function getSavingsText(savedHours: number): string {
   if (savedHours >= 12) return t('home.comparisons.show');
@@ -29,37 +31,33 @@ function getSavingsText(savedHours: number): string {
 export default function HomeScreen() {
   const theme = useColorScheme() ?? 'light';
   const colors = Colors[theme];
-  const { mode, username } = useAuth();
+  const { user, mode, username } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { formattedTime, activeTimeHours } = useAppTimeTracker();
+  const { data: stats, loading } = useUsageData(user?.uid);
 
-  // Mock Data — replace with usageService.fetchUsageStats(user.uid)
-  const streakDays = 15;
-  const usageHours24h = mode === 'hardcore' ? 1.5 : 3.5;
-  const usageHoursWeek = 22.1;
-  const usageHoursMonth = 88.4;
-  const usageHours6Months = 510.2;
-  const topPercentage = 15;
-
-  const { user } = useAuth();
+  // Stats from RTDB
+  const streakDays = stats?.streakDays ?? 0;
+  const usageHours24h = stats?.hours24h ?? 0;
+  const usageHoursWeek = stats?.hoursWeek ?? 0;
+  const usageHoursMonth = stats?.hoursMonth ?? 0;
+  const usageHours6Months = 0; // Future enhancement
+  const topPercentage = stats?.topPercentage ?? 50;
 
   useEffect(() => {
-    if (user) {
+    if (user && stats) {
       checkAndPostMilestones(user.uid, user.username, streakDays, topPercentage);
     }
-  }, [user, streakDays, topPercentage]);
+  }, [user, streakDays, topPercentage, stats]);
 
   const goalHours = 4;
   const savedToday = Math.max(0, goalHours - usageHours24h);
-  const savedWeek = 12.4;
-  const savedMonth = 42.1;
+  const savedWeek = Math.max(0, (goalHours * 7) - usageHoursWeek);
+  const savedMonth = Math.max(0, (goalHours * 30) - usageHoursMonth);
   const savingsText = getSavingsText(savedWeek);
 
-  const calendarData = Array.from({ length: 35 }, (_, i) => ({
-    date: new Date(Date.now() - (34 - i) * 24 * 60 * 60 * 1000),
-    usageMinutes: Math.floor(Math.random() * 140),
-  }));
+  const calendarData = stats?.calendarData || [];
 
   const mostUsedApps = [
     { name: 'Instagram', usageTime: 120, icon: 'camera' },
@@ -68,6 +66,7 @@ export default function HomeScreen() {
     { name: 'YouTube', usageTime: 45, icon: 'tv' },
     { name: 'Twitter/X', usageTime: 30, icon: 'message-circle' },
   ];
+
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
