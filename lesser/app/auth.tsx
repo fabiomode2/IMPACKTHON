@@ -1,9 +1,29 @@
 import React, { useState } from 'react';
 import {
   View, StyleSheet, TextInput, TouchableOpacity,
-  SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator,
+  SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator, AppState,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+
+let InstagramTrackerModule: any = null;
+if (Platform.OS === 'android') {
+  try {
+    InstagramTrackerModule = require('../modules/instagram-tracker').default;
+  } catch (e) {}
+}
+
+const checkPerm = () => {
+  if (Platform.OS === 'android' && InstagramTrackerModule) {
+    try { return InstagramTrackerModule.hasUsagePermission(); } catch (e) { return false; }
+  }
+  return true;
+};
+
+const requestPerm = () => {
+  if (Platform.OS === 'android' && InstagramTrackerModule) {
+    try { InstagramTrackerModule.requestUsagePermission(); } catch (e) {}
+  }
+};
 import { ThemedText } from '@/components/themed-text';
 import { useAuth } from '@/hooks/useAuth';
 import { Colors } from '@/constants/theme';
@@ -15,6 +35,7 @@ export default function AuthScreen() {
   const [usernameInput, setUsernameInput] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [showPermissionScreen, setShowPermissionScreen] = useState(false);
 
   const { login, register, skipAuth, isLoading } = useAuth();
   const router = useRouter();
@@ -32,6 +53,12 @@ export default function AuthScreen() {
       : await register(usernameInput, password);
 
     if (success) {
+      if (!isLogin && Platform.OS === 'android') {
+        if (!checkPerm()) {
+          setShowPermissionScreen(true);
+          return;
+        }
+      }
       router.replace('/(tabs)/home');
     } else {
       setError(t('auth.genericError'));
@@ -42,6 +69,43 @@ export default function AuthScreen() {
     skipAuth();
     router.replace('/(tabs)/home');
   };
+
+  React.useEffect(() => {
+    if (showPermissionScreen) {
+      const handleAppStateChange = (nextAppState: string) => {
+        if (nextAppState === 'active') {
+          if (checkPerm()) {
+            setShowPermissionScreen(false);
+            router.replace('/(tabs)/home');
+          }
+        }
+      };
+      const sub = AppState.addEventListener('change', handleAppStateChange);
+      return () => sub.remove();
+    }
+  }, [showPermissionScreen, router]);
+
+  if (showPermissionScreen) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={{ flex: 1, padding: 24, justifyContent: 'center' }}>
+          <ThemedText type="title" style={{ fontSize: 34, marginBottom: 16, textAlign: 'center' }}>
+            Permiso Necesario
+          </ThemedText>
+          <ThemedText style={{ fontSize: 16, lineHeight: 24, marginBottom: 40, textAlign: 'center', color: colors.textSecondary }}>
+            Para que esta aplicación pueda monitorear tu uso real de Instagram, necesitamos permisos de acceso a datos de uso. Es estrictamente obligatorio concederlo para registrarte y continuar.
+          </ThemedText>
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: colors.accent }]}
+            onPress={requestPerm}
+            activeOpacity={0.8}
+          >
+            <ThemedText style={styles.buttonText}>Otorgar Permiso</ThemedText>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>

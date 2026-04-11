@@ -1,9 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
-import { AppState, AppStateStatus } from 'react-native';
+import { AppState, AppStateStatus, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+let InstagramTrackerModule: any = null;
+try {
+  InstagramTrackerModule = require('../modules/instagram-tracker').default;
+} catch (e) {
+  console.warn("InstagramTrackerModule not available. Are you on iOS or missing native rebuild?");
+}
 
 const STORAGE_KEY_TIME = '@app_active_time';
 const STORAGE_KEY_LAST_SEEN = '@app_last_seen_timestamp';
+const STORAGE_KEY_IG_TODAY = '@ig_usage_today';
 
 // Definimos los límites del contador en milisegundos
 const MAX_TIME_MS = 6 * 3600 * 1000; // 6 horas en milisegundos
@@ -11,28 +19,80 @@ const MIN_TIME_MS = 0;               // 0 horas
 
 export function useAppTimeTracker() {
   const [activeTimeMs, setActiveTimeMs] = useState<number>(0);
+  const [hasPermission, setHasPermission] = useState<boolean>(true);
   
-  // Referencias para no perder el estado actual dentro de los clousures (Intervalos y listeners)
+  // Referencias para no perder el estado actual dentro de los clousures
   const appState = useRef(AppState.currentState);
   const activeTimeRef = useRef<number>(0);
+  const igUsageTodayRef = useRef<number>(0);
+  const isIgForegroundRef = useRef<boolean>(false);
 
-  // Carga inicial y cálculo de la diferencia del tiempo transcurrido desde el último uso
+  // Funciones manuales para gestionar el permiso en Android
+  const checkPermission = () => {
+    if (Platform.OS === 'android' && InstagramTrackerModule) {
+      try {
+        const granted = InstagramTrackerModule.hasUsagePermission();
+        setHasPermission(granted);
+        return granted;
+      } catch (e) {
+        return false;
+      }
+    }
+    return true; // En iOS o web asumimos true para silenciar errores
+  };
+
+  const requestPermission = () => {
+    if (Platform.OS === 'android' && InstagramTrackerModule) {
+      try {
+        InstagramTrackerModule.requestUsagePermission();
+      } catch (e) {}
+    }
+  };
+
+  // Carga inicial y cálculo del tiempo cuando estuvo apagada la app
   useEffect(() => {
     const initializeTracker = async () => {
+      checkPermission();
+      
       try {
         const storedTime = await AsyncStorage.getItem(STORAGE_KEY_TIME);
         const storedLastSeen = await AsyncStorage.getItem(STORAGE_KEY_LAST_SEEN);
+        const storedIgToday = await AsyncStorage.getItem(STORAGE_KEY_IG_TODAY);
         
-        let currentTime = storedTime ? parseInt(storedTime, 10) : 0;
+        let currentTime = storedTime ? parseFloat(storedTime) : 0;
+        let lastIgUsage = storedIgToday ? parseFloat(storedIgToday) : 0;
         
-        if (storedLastSeen) {
-          const lastSeenMs = parseInt(storedLastSeen, 10);
-          const nowMs = Date.now();
-          const offlineElapsed = Math.max(0, nowMs - lastSeenMs);
-          
-          // Se reduce 3 veces más lento (es decir, el paso offline / 3)
-          const reduction = offlineElapsed / 3.0;
-          currentTime = Math.max(MIN_TIME_MS, currentTime - reduction);
+        // Calculo del tiempo offline / background antes de abrir la app de nuevo
+        if (storedLastSeen && Platform.OS === 'android' && InstagramTrackerModule) {
+          try {
+            const currentIgToday = InstagramTrackerModule.getInstagramUsageToday();
+            const lastSeenMs = parseInt(storedLastSeen, 10);
+            const nowMs = Date.now();
+            
+            const offlineElapsed = Math.max(0, nowMs - lastSeenMs);
+            let igUsedOffline = 0;
+
+            if (currentIgToday >= lastIgUsage) {
+                igUsedOffline = Math.max(0, currentIgToday - lastIgUsage);
+            } else {
+                // Pasamos a un día nuevo, el uso de hoy empezó desde 0
+                igUsedOffline = currentIgToday; 
+            }
+
+            // Clampeamos el uso al tiempo real transcurrido
+            igUsedOffline = Math.min(igUsedOffline, offlineElapsed);
+            
+            const offlineNotOnIg = Math.max(0, offlineElapsed - igUsedOffline);
+            
+            // Tiempo sumado por IG
+            currentTime += igUsedOffline;
+            // Tiempo restado por NO usar IG (3 veces más lento)
+            currentTime -= (offlineNotOnIg / 3.0);
+            
+            currentTime = Math.max(MIN_TIME_MS, Math.min(MAX_TIME_MS, currentTime));
+            
+            igUsageTodayRef.current = currentIgToday;
+          } catch(e) {}
         }
         
         activeTimeRef.current = currentTime;
@@ -45,73 +105,93 @@ export function useAppTimeTracker() {
     initializeTracker();
   }, []);
 
-  // Lógica principal de subscripción y conteo
+  // Listener para AppState con el fin de guardar al salir de la app
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | null = null;
-    
-    const startInterval = () => {
-      if (interval) clearInterval(interval);
-      interval = setInterval(() => {
-        // Sumar tiempo si está en primer plano y no supera 6h
-        activeTimeRef.current = Math.min(MAX_TIME_MS, activeTimeRef.current + 1000);
-        setActiveTimeMs(activeTimeRef.current);
-      }, 1000);
-    };
-
-    const stopIntervalAndSaveState = async () => {
-      if (interval) {
-        clearInterval(interval);
-        interval = null;
-      }
-      try {
-        await AsyncStorage.multiSet([
-          [STORAGE_KEY_TIME, activeTimeRef.current.toString()],
-          [STORAGE_KEY_LAST_SEEN, Date.now().toString()]
-        ]);
-      } catch (e) {
-        console.error("Failed to save time tracker state", e);
-      }
-    };
-
-    // Este listener reacciona a los cambios entre background (apagado) y active (primer plano)
     const handleAppStateChange = async (nextAppState: AppStateStatus) => {
       if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
-        // ¡La app volvió al primer plano!
-        // Calculamos cuánto tiempo estuvo offline y reducimos el contador actual
-        try {
-          const storedLastSeen = await AsyncStorage.getItem(STORAGE_KEY_LAST_SEEN);
-          if (storedLastSeen) {
-            const lastSeenMs = parseInt(storedLastSeen, 10);
-            const nowMs = Date.now();
-            const offlineElapsed = Math.max(0, nowMs - lastSeenMs);
-            const reduction = offlineElapsed / 3.0; // Reduce 3 veces más lento
-            
-            activeTimeRef.current = Math.max(MIN_TIME_MS, activeTimeRef.current - reduction);
-            setActiveTimeMs(activeTimeRef.current);
-          }
-        } catch (e) {}
-        
-        startInterval();
-        
+        checkPermission();
       } else if (nextAppState.match(/inactive|background/)) {
-        // ¡La app se ha ido a segundo plano o se apagó la pantalla!
-        stopIntervalAndSaveState();
+        // Nos vamos al background o el user sale de la app: salvamos estado
+        try {
+          let currentIgToday = igUsageTodayRef.current;
+          if (Platform.OS === 'android' && InstagramTrackerModule) {
+            try {
+               currentIgToday = InstagramTrackerModule.getInstagramUsageToday();
+               igUsageTodayRef.current = currentIgToday;
+            } catch(e) {}
+          }
+             
+          await AsyncStorage.multiSet([
+            [STORAGE_KEY_TIME, activeTimeRef.current.toString()],
+            [STORAGE_KEY_LAST_SEEN, Date.now().toString()],
+            [STORAGE_KEY_IG_TODAY, currentIgToday.toString()]
+          ]);
+        } catch (e) {}
       }
-      
       appState.current = nextAppState;
     };
 
-    // Si al montar el hook la app ya está activa (muy común), iniciamos a contar
-    if (appState.current === 'active') {
-      startInterval();
-    }
-
     const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  // Intervalo continuo (Polling principal en primer plano)
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null;
+    let lastTick = Date.now();
+
+    const tick = async () => {
+      const now = Date.now();
+      const delta = now - lastTick;
+      lastTick = now;
+
+      if (delta > 60000) {
+        // Si el delta es enorme, significa que la app ha despertado sin montar de nuevo el componente
+        // Hacemos un calculo agrupado como en la inicializacion
+        if (Platform.OS === 'android' && InstagramTrackerModule) {
+            try {
+                const currentIgToday = InstagramTrackerModule.getInstagramUsageToday();
+                let igUsedOffline = 0;
+                if (currentIgToday >= igUsageTodayRef.current) {
+                   igUsedOffline = currentIgToday - igUsageTodayRef.current;
+                } else {
+                   igUsedOffline = currentIgToday;
+                }
+                igUsedOffline = Math.min(igUsedOffline, delta);
+                const offlineNotOnIg = Math.max(0, delta - igUsedOffline);
+                
+                let tempTime = activeTimeRef.current + igUsedOffline - (offlineNotOnIg / 3.0);
+                activeTimeRef.current = Math.max(MIN_TIME_MS, Math.min(MAX_TIME_MS, tempTime));
+                igUsageTodayRef.current = currentIgToday;
+            } catch(e) {}
+        }
+      } else {
+         // Tick sub-minuto: checkeamos si IG esta en primer plano
+         if (Platform.OS === 'android' && InstagramTrackerModule) {
+           try {
+             isIgForegroundRef.current = InstagramTrackerModule.isInstagramInForeground();
+           } catch(e) {}
+         }
+         
+         if (isIgForegroundRef.current) {
+            // Sube el tiempo si estamos en IG
+            activeTimeRef.current += delta;
+         } else {
+            // Baja 3 veces mas lento si no
+            activeTimeRef.current -= (delta / 3.0);
+         }
+         activeTimeRef.current = Math.max(MIN_TIME_MS, Math.min(MAX_TIME_MS, activeTimeRef.current));
+      }
+
+      setActiveTimeMs(Math.floor(activeTimeRef.current));
+    };
+
+    // Actualizamos el contador cada 1000 milisegundos
+    interval = setInterval(tick, 1000);
 
     return () => {
-      // Limpieza cuando este hook se desmonta
-      stopIntervalAndSaveState();
-      subscription.remove();
       if (interval) clearInterval(interval);
     };
   }, []);
@@ -126,5 +206,5 @@ export function useAppTimeTracker() {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  return { activeTimeMs, activeTimeHours: activeTimeMs / (3600 * 1000), formattedTime: getFormattedTime() };
+  return { activeTimeMs, activeTimeHours: activeTimeMs / (3600 * 1000), formattedTime: getFormattedTime(), hasPermission, requestPermission, checkPermission };
 }
