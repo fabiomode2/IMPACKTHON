@@ -15,8 +15,8 @@ lesser/*.p12
 lesser/*.key
 lesser/*.mobileprovision
 lesser/*.orig.*
-lesser/android/
-lesser/ios/
+# lesser/android/
+# lesser/ios/
 !lesser/assets/
 
 # ── Firebase ──────────────────────────────────────────────────────────────────
