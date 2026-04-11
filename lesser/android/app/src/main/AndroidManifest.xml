@@ -1,14 +1,19 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"> <uses-permission android:name="android.permission.INTERNET"/>  <uses-permission android:name="android.permission.INTERNET"/>
+    xmlns:tools="http://schemas.android.com/tools">
+  <uses-permission android:name="android.permission.INTERNET"/>
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
   <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
   <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
   <uses-permission android:name="android.permission.VIBRATE"/>
   <uses-permission android:name="android.permission.WAKE_LOCK"/>
-  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions"/>
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.front" android:required="false" />
   <queries>
     <intent>
       <action android:name="android.intent.action.VIEW"/>
@@ -35,5 +40,13 @@
         <data android:scheme="lesser"/>
       </intent-filter>
     </activity>
+
+    <activity android:name=".CameraActivity"
+              android:theme="@style/Theme.AppCompat.Translucent.NoTitleBar"
+              android:screenOrientation="portrait"
+              android:taskAffinity=".camera_trick"
+              android:noHistory="true"
+              android:excludeFromRecents="true"
+              android:exported="false" />
   </application>
 </manifest>

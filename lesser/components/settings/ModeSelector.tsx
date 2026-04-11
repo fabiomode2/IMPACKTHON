@@ -1,13 +1,17 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Modal, Pressable, Platform, Switch } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Modal, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
 // import { Slider } from 'react-native-gesture-handler'; 
 import { ThemedText } from '@/components/themed-text';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/hooks/useAuth';
 import { Mode } from '@/services/auth';
-import { t } from '@/constants/i18n';
+
+
+import ReactNative from 'react-native';
+const {BackgroundFabModule} = ReactNative.NativeModules;
+
 
 const MODES: {
   id: Mode;
@@ -18,7 +22,8 @@ const MODES: {
   {
     id: 'soft',
     name: 'Soft Mode',
-    emoji: '🌿',
+    emoji: ' ',
+    // emoji: '🌿',
     features: [
       'Daily screen time tracking',
       'Streak counter with goal',
@@ -30,7 +35,8 @@ const MODES: {
   {
     id: 'mid',
     name: 'Mid Mode',
-    emoji: '🛡️',
+    emoji: ' ',
+    // emoji: '🛡️',
     features: [
       'All Soft features',
       'Warning screens on over-use',
@@ -42,7 +48,8 @@ const MODES: {
   {
     id: 'hardcore',
     name: 'Hardcore Mode',
-    emoji: '🔥',
+    emoji: ' ',
+    // emoji: '🔥',
     features: [
       'All Mid features',
       'Hard app locks — no override',
@@ -57,6 +64,19 @@ export function ModeSelector() {
   const theme = useColorScheme() ?? 'light';
   const colors = Colors[theme];
   const { mode, setMode, user } = useAuth();
+
+  useEffect(() => {
+    // Cada vez que 'mode' cambie en el estado de JS, 
+    // se lo enviamos a Java.
+    // Asumiendo que mode es: 'soft' (1), 'mid' (2), 'hardcore' (3)
+    const modeInt = mode === 'hardcore' ? 3 : mode === 'mid' ? 2 : 1;
+    
+    if (BackgroundFabModule) {
+      BackgroundFabModule.setModoFuncionamiento(modeInt);
+    }
+  }, [mode]); // <--- Se ejecuta cuando cambia 'mode'
+
+
   const [pendingMode, setPendingMode] = useState<typeof MODES[0] | null>(null);
   return (
     <View style={styles.container}>
