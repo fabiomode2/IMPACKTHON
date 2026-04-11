@@ -7,5 +7,6 @@ declare class InstagramTrackerModule extends NativeModule {
   isInstagramInForeground(): boolean;
   startVigilante(): void;
   stopVigilante(): void;
+}
 
 export default requireNativeModule<InstagramTrackerModule>('InstagramTracker');
