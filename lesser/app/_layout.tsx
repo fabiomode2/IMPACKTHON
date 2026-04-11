@@ -7,6 +7,11 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
 import { useEffect } from 'react';
 import { useRouter, useSegments, useRootNavigationState } from 'expo-router';
+import { registerAllBackgroundTasks } from '@/services/backgroundTasks';
+import { silentNudgeService } from '@/services/silentNudgeService';
+import { fetchSettings } from '@/services/settings';
+import { auth as firebaseAuth } from '@/services/firebase';
+import { Platform } from 'react-native';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -39,6 +44,23 @@ function RootLayoutNav() {
     }, 0);
     return () => clearTimeout(timeout);
   }, [isOnboarded, authCompleted, isLoading, segments, router, navigationState?.key]);
+
+  useEffect(() => {
+    // Register background tasks (Android)
+    registerAllBackgroundTasks();
+
+    // Initial silent nudge check if user is logged in
+    const user = firebaseAuth.currentUser;
+    if (user && Platform.OS === 'android') {
+      fetchSettings(user.uid).then(settings => {
+        if (settings.mode === 'soft' && settings.silentNudgeEnabled) {
+          // Placeholder usage for testing - in production, this will be 
+          // driven by the usage detection service.
+          silentNudgeService.notifyForegroundUsage(1); 
+        }
+      });
+    }
+  }, []);
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>

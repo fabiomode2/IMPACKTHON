@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Modal, Pressable } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Modal, Pressable, Platform, Switch } from 'react-native';
+// import { Slider } from 'react-native-gesture-handler'; 
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/hooks/useAuth';
 import { Mode } from '@/services/auth';
+import { t } from '@/constants/i18n';
 
 const MODES: {
   id: Mode;
@@ -54,9 +56,8 @@ const MODES: {
 export function ModeSelector() {
   const theme = useColorScheme() ?? 'light';
   const colors = Colors[theme];
-  const { mode, setMode } = useAuth();
+  const { mode, setMode, user } = useAuth();
   const [pendingMode, setPendingMode] = useState<typeof MODES[0] | null>(null);
-
   return (
     <View style={styles.container}>
       <ThemedText style={styles.sectionTitle}>App Mode</ThemedText>
@@ -157,6 +158,70 @@ const styles = StyleSheet.create({
   modeText: { fontSize: 17 },
   featureCount: { fontSize: 12, marginTop: 2 },
   divider: { height: StyleSheet.hairlineWidth, marginLeft: 58 },
+  // Nudge Card
+  nudgeCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 20,
+    marginTop: 8,
+    gap: 16,
+  },
+  nudgeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  nudgeTitleGroup: {
+    flex: 1,
+    gap: 4,
+  },
+  nudgeTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  nudgeDesc: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  thresholdContainer: {
+    gap: 12,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(142, 142, 147, 0.2)',
+  },
+  thresholdHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  thresholdLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  thresholdValue: {
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  thresholdControls: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  thresholdChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    minWidth: 50,
+    alignItems: 'center',
+  },
+  thresholdChipText: {
+    fontSize: 14,
+  },
+  helperText: {
+    fontSize: 12,
+    fontStyle: 'italic',
+  },
   // Modal
   overlay: {
     flex: 1,

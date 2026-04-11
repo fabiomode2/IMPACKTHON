@@ -233,6 +233,11 @@ const en = {
     deleteAccountPasswordHint: 'Enter your password to confirm account deletion.',
     deleteAccountError: 'Could not delete account. Please try again.',
     passwordRequired: 'Please enter your password.',
+    silentNudge: 'Silent Nudge (Android)',
+    silentNudgeDesc: 'Periodically mutes sound after long usage to discourage scrolling.',
+    usageThreshold: 'Usage Threshold',
+    usageThresholdMinutes: '{{minutes}} minutes',
+    usageThresholdInfo: 'Starts nudging after this many minutes of foreground app use.',
   },
 };
 
@@ -325,6 +330,11 @@ const es: Strings = {
     deleteAccountPasswordHint: 'Introduce tu contraseña para confirmar la eliminación de la cuenta.',
     deleteAccountError: 'No se pudo eliminar la cuenta. Inténtalo de nuevo.',
     passwordRequired: 'Por favor introduce tu contraseña.',
+    silentNudge: 'Empujón Silencioso (Android)',
+    silentNudgeDesc: 'Silencia el sonido periódicamente tras un uso prolongado.',
+    usageThreshold: 'Límite de Uso',
+    usageThresholdMinutes: '{{minutes}} minutos',
+    usageThresholdInfo: 'El empujón comienza tras estos minutos de uso.',
   },
 };
 
