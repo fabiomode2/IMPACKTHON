@@ -88,6 +88,7 @@ const en = {
     registerSubtitle: 'Sign up to connect with friends and compete.',
     usernamePlaceholder: 'Username',
     passwordPlaceholder: 'Password',
+    password: 'Password',
     loginButton: 'Log In',
     registerButton: 'Sign Up',
     switchToRegister: "Don't have an account? Sign up",
@@ -204,6 +205,8 @@ const en = {
     followerPlural: 'followers',
     streakLabel: '🔥 {{days}} day streak',
     countSummary: '{{count}} {{noun}} · {{following}} following',
+    noFollowers: 'No followers yet.',
+    noResults: 'No results found.',
   },
 
   // ── Settings ─────────────────────────────────────────────
@@ -223,6 +226,13 @@ const en = {
     switchTo: 'Switch to {{mode}}',
     whitelist: 'App Whitelist',
     whitelistSubtitle: 'These apps are always accessible, even in Hardcore mode.',
+    deleteAccount: 'Delete Account',
+    deleteAccountTitle: 'Delete Account',
+    deleteAccountConfirm: 'This action is permanent and cannot be undone. All your data will be deleted.',
+    deleteAccountAction: 'Delete',
+    deleteAccountPasswordHint: 'Enter your password to confirm account deletion.',
+    deleteAccountError: 'Could not delete account. Please try again.',
+    passwordRequired: 'Please enter your password.',
   },
 };
 
@@ -246,6 +256,7 @@ const es: Strings = {
     loginTitle: 'Bienvenido de vuelta', registerTitle: 'Crear cuenta',
     loginSubtitle: 'Inicia sesión para sincronizar tu progreso.', registerSubtitle: 'Regístrate para conectar con amigos.',
     usernamePlaceholder: 'Usuario', passwordPlaceholder: 'Contraseña',
+    password: 'Contraseña',
     loginButton: 'Iniciar sesión', registerButton: 'Registrarse',
     switchToRegister: '¿No tienes cuenta? Regístrate', switchToLogin: '¿Ya tienes cuenta? Inicia sesión',
     skipButton: 'Saltar por ahora', fillAllFields: 'Por favor rellena todos los campos.',
@@ -298,6 +309,8 @@ const es: Strings = {
     followerPlural: 'seguidores',
     streakLabel: '🔥 {{days}} días de racha',
     countSummary: '{{count}} {{noun}} · {{following}} siguiendo',
+    noFollowers: 'Aún no tienes seguidores.',
+    noResults: 'Sin resultados.',
   },
   settings: {
     title: 'Ajustes', version: 'IMPACKTHON 2026 — {{version}}',
@@ -305,6 +318,13 @@ const es: Strings = {
     changeUsername: 'Cambiar usuario', changePassword: 'Cambiar contraseña', logOut: 'Cerrar sesión', logIn: 'Iniciar sesión / Registrarse',
     appMode: 'Modo de la app', features: '{{n}} funciones', currentlyActive: 'Activo actualmente', switchTo: 'Cambiar a {{mode}}',
     whitelist: 'Lista blanca de apps', whitelistSubtitle: 'Estas apps son siempre accesibles, incluso en modo Extremo.',
+    deleteAccount: 'Eliminar cuenta',
+    deleteAccountTitle: 'Eliminar cuenta',
+    deleteAccountConfirm: 'Esta acción es permanente e irreversible. Todos tus datos serán eliminados.',
+    deleteAccountAction: 'Eliminar',
+    deleteAccountPasswordHint: 'Introduce tu contraseña para confirmar la eliminación de la cuenta.',
+    deleteAccountError: 'No se pudo eliminar la cuenta. Inténtalo de nuevo.',
+    passwordRequired: 'Por favor introduce tu contraseña.',
   },
 };
 

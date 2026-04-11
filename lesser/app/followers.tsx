@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, StyleSheet, FlatList, SafeAreaView,
-  TouchableOpacity, TextInput, Animated,
+  TouchableOpacity, TextInput, Animated, ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,6 +10,8 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { t } from '@/constants/i18n';
+import { useAuth } from '@/hooks/useAuth';
+import { useSocial } from '@/hooks/useSocial';
 
 interface UserRow {
   uid: string;
@@ -18,34 +20,46 @@ interface UserRow {
   isFollowing: boolean;
 }
 
-// Mock data — replace with fetchFollowers(uid) + fetchFollowing(uid) from social service
-const MOCK_FOLLOWERS: UserRow[] = [
-  { uid: 'u1', username: 'AlexRodriguez', streakDays: 14, isFollowing: true },
-  { uid: 'u2', username: 'Maria_99', streakDays: 3, isFollowing: true },
-  { uid: 'u3', username: 'Carlos_Dev', streakDays: 30, isFollowing: false },
-  { uid: 'u4', username: 'Sara_M', streakDays: 7, isFollowing: true },
-  { uid: 'u5', username: 'JuanP', streakDays: 2, isFollowing: false },
-  { uid: 'u6', username: 'Lucia_F', streakDays: 18, isFollowing: false },
-  { uid: 'u7', username: 'Pablo_S', streakDays: 5, isFollowing: true },
-];
-
 export default function FollowersScreen() {
   const theme = useColorScheme() ?? 'light';
   const colors = Colors[theme];
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [users, setUsers] = useState<UserRow[]>(MOCK_FOLLOWERS);
   const [search, setSearch] = useState('');
+
+  // Auth context — gives us the current user uid + username
+  const { user } = useAuth();
+  const myUid      = user?.uid      ?? null;
+  const myUsername = user?.username ?? null;
+
+  // Real-time Firestore social hook
+  const { followers, following, isLoadingFollowers, follow, unfollow } = useSocial(myUid, myUsername);
+
+  // Build combined list: followers enriched with "am I following them back?" flag
+  const [users, setUsers] = useState<UserRow[]>([]);
+
+  useEffect(() => {
+    const followingSet = new Set(following.map(f => f.uid));
+    setUsers(
+      followers.map(f => ({
+        uid:         f.uid,
+        username:    f.username,
+        streakDays:  f.streakDays,
+        isFollowing: followingSet.has(f.uid),
+      }))
+    );
+  }, [followers, following]);
 
   const filtered = users.filter(u =>
     u.username.toLowerCase().includes(search.toLowerCase())
   );
 
-  const toggleFollow = (uid: string) => {
-    // [FIREBASE] followUser(uid) / unfollowUser(uid)
-    setUsers(prev =>
-      prev.map(u => u.uid === uid ? { ...u, isFollowing: !u.isFollowing } : u)
-    );
+  const toggleFollow = async (uid: string, username: string, currentlyFollowing: boolean) => {
+    if (currentlyFollowing) {
+      await unfollow(uid);
+    } else {
+      await follow(uid, username);
+    }
   };
 
   const renderItem = ({ item }: { item: UserRow }) => (
@@ -53,7 +67,7 @@ export default function FollowersScreen() {
       item={item}
       colors={colors}
       onPress={() => router.push(`/friend/${item.uid}`)}
-      onToggleFollow={() => toggleFollow(item.uid)}
+      onToggleFollow={() => toggleFollow(item.uid, item.username, item.isFollowing)}
     />
   );
 
@@ -102,13 +116,26 @@ export default function FollowersScreen() {
         </ThemedText>
       </View>
 
-      <FlatList
-        data={filtered}
-        keyExtractor={item => item.uid}
-        renderItem={renderItem}
-        contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 24 }]}
-        showsVerticalScrollIndicator={false}
-      />
+      {isLoadingFollowers ? (
+        <View style={styles.loading}>
+          <ActivityIndicator size="large" color={colors.accent} />
+        </View>
+      ) : (
+        <FlatList
+          data={filtered}
+          keyExtractor={item => item.uid}
+          renderItem={renderItem}
+          contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 24 }]}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <ThemedText style={[styles.emptyText, { color: colors.textSecondary }]}>
+                {search.length > 0 ? t('followers.noResults') : t('followers.noFollowers')}
+              </ThemedText>
+            </View>
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -207,6 +234,9 @@ const styles = StyleSheet.create({
   countRow: { paddingHorizontal: 20, paddingBottom: 8 },
   countText: { fontSize: 13 },
   list: { paddingBottom: 40 },
+  loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  empty: { paddingTop: 60, alignItems: 'center' },
+  emptyText: { fontSize: 15 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
