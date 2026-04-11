@@ -10,6 +10,8 @@ export interface FeedItemData {
   uid: string;
   username: string;
   days: number;
+  value?: number;
+  type: 'STREAK' | 'USAGE_REDUCTION' | 'TOP_RANK';
   message?: string;
   photoUrl?: string;
   timestamp: string;
@@ -23,28 +25,72 @@ export function FeedItem({ data }: FeedItemProps) {
   const theme = useColorScheme() ?? 'light';
   const colors = Colors[theme];
 
+  const getAchievementDetails = () => {
+    switch (data.type) {
+      case 'STREAK':
+        return {
+          icon: 'flame.fill',
+          color: '#FF9500',
+          text: `¡Ha alcanzado una racha de ${data.days} días!`,
+          subtext: 'La disciplina es la clave del progreso.',
+        };
+      case 'USAGE_REDUCTION':
+        return {
+          icon: 'arrow.down.circle.fill',
+          color: '#34C759',
+          text: `¡Ha reducido su uso un ${data.value}% hoy!`,
+          subtext: 'Ganando tiempo para lo que realmente importa.',
+        };
+      case 'TOP_RANK':
+        return {
+          icon: 'trophy.fill',
+          color: '#FFCC00',
+          text: `¡Está en el Top ${data.value}% del mundo!`,
+          subtext: 'Un ejemplo de control y enfoque.',
+        };
+      default:
+        return {
+          icon: 'star.fill',
+          color: colors.accent,
+          text: '¡Ha conseguido un nuevo logro!',
+          subtext: 'Sigue así.',
+        };
+    }
+  };
+
+  const details = getAchievementDetails();
+
   return (
     <View style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={styles.header}>
-        <View style={styles.avatarPlaceholder}>
-          <ThemedText style={styles.avatarText}>{data.username.charAt(0).toUpperCase()}</ThemedText>
+        <View style={[styles.avatarPlaceholder, { backgroundColor: details.color + '22' }]}>
+          <ThemedText style={[styles.avatarText, { color: details.color }]}>
+            {data.username.charAt(0).toUpperCase()}
+          </ThemedText>
         </View>
         <View style={styles.headerText}>
-          <ThemedText style={styles.username}>{data.username}</ThemedText>
+          <ThemedText style={styles.username}>@{data.username}</ThemedText>
           <ThemedText style={[styles.time, { color: colors.textSecondary }]}>{data.timestamp}</ThemedText>
+        </View>
+        <View style={[styles.typeBadge, { backgroundColor: details.color + '15' }]}>
+          <IconSymbol name={details.icon as any} size={14} color={details.color} />
         </View>
       </View>
       
       <View style={styles.body}>
-        <ThemedText style={styles.updateText}>
-          <IconSymbol name="flame.fill" size={16} color={colors.accent} />
-          {' '}Ha estado reduciendo su uso por <ThemedText style={{ fontWeight: 'bold' }}>{data.days} días</ThemedText>!
+        <ThemedText style={styles.achievementTitle}>
+          {details.text}
+        </ThemedText>
+        <ThemedText style={[styles.subtext, { color: colors.textSecondary }]}>
+          {details.subtext}
         </ThemedText>
         
         {data.message && (
-          <ThemedText style={[styles.message, { color: colors.textSecondary }]}>
-            "{data.message}"
-          </ThemedText>
+          <View style={[styles.messageBox, { backgroundColor: colors.background + '50' }]}>
+            <ThemedText style={[styles.message, { color: colors.textSecondary }]}>
+              "{data.message}"
+            </ThemedText>
+          </View>
         )}
 
         {data.photoUrl && (
@@ -54,9 +100,6 @@ export function FeedItem({ data }: FeedItemProps) {
               style={styles.photo} 
               resizeMode="cover" 
             />
-            <View style={styles.photoOverlay}>
-              <ThemedText style={styles.photoCaption}>¡Atrapado mirando el móvil!</ThemedText>
-            </View>
           </View>
         )}
       </View>
@@ -66,15 +109,10 @@ export function FeedItem({ data }: FeedItemProps) {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
-    borderRadius: 20,
+    padding: 16,
+    borderRadius: 24,
     borderWidth: 1,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    marginBottom: 8,
   },
   header: {
     flexDirection: 'row',
@@ -86,58 +124,59 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#8E8E9330',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '800',
   },
   headerText: {
     flex: 1,
   },
   username: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
   },
   time: {
     fontSize: 12,
+    marginTop: 2,
+  },
+  typeBadge: {
+    padding: 8,
+    borderRadius: 12,
   },
   body: {
-    gap: 12,
+    gap: 6,
   },
-  updateText: {
-    fontSize: 16,
-    lineHeight: 24,
+  achievementTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    lineHeight: 22,
+  },
+  subtext: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 4,
+  },
+  messageBox: {
+    marginTop: 8,
+    padding: 12,
+    borderRadius: 14,
+    borderStyle: 'italic',
   },
   message: {
+    fontSize: 14,
     fontStyle: 'italic',
-    fontSize: 15,
   },
   photoContainer: {
-    marginTop: 8,
-    borderRadius: 12,
+    marginTop: 12,
+    borderRadius: 16,
     overflow: 'hidden',
-    position: 'relative',
   },
   photo: {
     width: '100%',
-    height: 200,
+    height: 180,
     backgroundColor: '#000',
-  },
-  photoOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    padding: 8,
-  },
-  photoCaption: {
-    color: '#FFF',
-    fontSize: 12,
-    textAlign: 'center',
-    fontWeight: '500',
   },
 });
