@@ -9,16 +9,17 @@ export type { Mode };
 
 interface AuthState {
   isOnboarded: boolean;
-  /** True if user has explicitly logged in OR explicitly skipped */
   authCompleted: boolean;
   isLoggedIn: boolean;
   isLoading: boolean;
+  lastError: string | null;
   mode: Mode;
   user: UserProfile | null;
   username: string | null;
   completeOnboarding: (mode: Mode) => void;
   login: (username: string, password: string) => Promise<boolean>;
   register: (username: string, password: string) => Promise<boolean>;
+  updateProfile: (data: Partial<UserProfile>) => Promise<boolean>;
   skipAuth: () => void;
   logout: () => void;
   setMode: (mode: Mode) => void;
@@ -31,6 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authCompleted, setAuthCompleted] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [lastError, setLastError] = useState<string | null>(null);
   const [mode, setModeState] = useState<Mode>('mid');
   const [user, setUser] = useState<UserProfile | null>(null);
 
@@ -45,18 +47,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             uid: firebaseUser.uid,
             username: data?.username ?? firebaseUser.email?.split('@')[0] ?? 'User',
             email: firebaseUser.email ?? undefined,
+            mode: data?.mode ?? 'mid',
+            streakDays: data?.streakDays ?? 0,
             createdAt: data?.createdAt?.toDate() ?? new Date(),
           };
           setUser(profile);
-          setModeState(data?.mode ?? 'mid');
+          setModeState(profile.mode);
           setIsLoggedIn(true);
           setAuthCompleted(true);
           setIsOnboarded(true);
         } catch {
-          // If Firestore fetch fails, still mark as logged in
+          // Fallback
           setUser({
             uid: firebaseUser.uid,
             username: firebaseUser.email?.split('@')[0] ?? 'User',
+            mode: 'mid',
+            streakDays: 0,
             createdAt: new Date(),
           });
           setIsLoggedIn(true);
@@ -66,7 +72,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setUser(null);
         setIsLoggedIn(false);
-        // Don't reset authCompleted here — let navigation handle it
       }
       setIsLoading(false);
     });
@@ -81,6 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (username: string, password: string): Promise<boolean> => {
     setIsLoading(true);
+    setLastError(null);
     try {
       const result = await loginUser(username, password);
       if (result.success && result.user) {
@@ -89,6 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setAuthCompleted(true);
         return true;
       }
+      setLastError(result.error ?? 'Error de inicio de sesión');
       return false;
     } finally {
       setIsLoading(false);
@@ -97,6 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = async (username: string, password: string): Promise<boolean> => {
     setIsLoading(true);
+    setLastError(null);
     try {
       const result = await registerUser(username, password);
       if (result.success && result.user) {
@@ -105,6 +113,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setAuthCompleted(true);
         return true;
       }
+      setLastError(result.error ?? 'Error de registro');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateProfile = async (data: Partial<UserProfile>): Promise<boolean> => {
+    if (!user) return false;
+    setIsLoading(true);
+    setLastError(null);
+    try {
+      const result = await updateUserProfile(user.uid, data);
+      if (result.success && result.user) {
+        setUser(result.user);
+        if (data.mode) setModeState(data.mode);
+        return true;
+      }
+      setLastError(result.error ?? 'Error al actualizar perfil');
       return false;
     } finally {
       setIsLoading(false);
@@ -125,6 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const setMode = (newMode: Mode) => {
     setModeState(newMode);
+    if (user) updateProfile({ mode: newMode });
   };
 
   return (
@@ -134,12 +162,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         authCompleted,
         isLoggedIn,
         isLoading,
+        lastError,
         mode,
         user,
         username: user?.username ?? null,
         completeOnboarding,
         login,
         register,
+        updateProfile,
         skipAuth,
         logout,
         setMode,

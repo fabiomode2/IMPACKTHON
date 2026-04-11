@@ -296,8 +296,8 @@ export async function searchUsers(usernamePrefix: string): Promise<Friend[]> {
 
   const q = query(
     collection(db, 'users'),
-    where('username', '>=', usernamePrefix),
-    where('username', '<=', usernamePrefix + '\uf8ff'),
+    where('username_lowercase', '>=', prefix),
+    where('username_lowercase', '<=', prefix + '\uf8ff'),
     limit(15),
   );
   const snap = await getDocs(q);
