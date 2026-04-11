@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.fabiomode2.lesser"
     },
     "android": {
       "adaptiveIcon": {
@@ -28,6 +29,7 @@
     },
     "plugins": [
       "expo-router",
+      "./modules/expo-app-usage/app.plugin.js",
       [
         "expo-splash-screen",
         {
@@ -48,7 +50,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "6c5abc1c-4fe2-43a1-a618-6b89b94ba824"
+        "projectId": "9d9d5b1f-61af-4b92-9073-6eda18e28a86"
       }
     }
   }
