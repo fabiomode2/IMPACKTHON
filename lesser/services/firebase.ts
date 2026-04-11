@@ -11,14 +11,17 @@
  */
 
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getFunctions } from 'firebase/functions';
 import { FIREBASE_CONFIG } from '@/constants/firebase.config';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const app = getApps().length === 0 ? initializeApp(FIREBASE_CONFIG) : getApp();
 
-export const auth      = getAuth(app);
+export const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage)
+});
 export const db        = getFirestore(app);
 export const functions = getFunctions(app, 'europe-west1'); // eur3 region
 
