@@ -11,8 +11,10 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { t } from '@/constants/i18n';
 import { useAuth } from '@/hooks/useAuth';
 import { useUsageData } from '@/hooks/useUsageData';
+import { formatLocalISO } from '@/services/usage';
 
 const BAR_MAX_HEIGHT = 120;
+
 const GOAL_HOURS = 4;
 
 type ChartPeriod = 'week' | 'month' | '3months' | 'year';
@@ -56,7 +58,7 @@ function getChartData(dailyUsage: Record<string, { totalMinutes: number }>, peri
       for (let i = 0; i < 7; i++) {
         const d = new Date(mon);
         d.setDate(mon.getDate() + i);
-        const dStr = d.toISOString().split('T')[0];
+        const dStr = formatLocalISO(d);
         data.push({
           label: days[i],
           hours: (dailyUsage[dStr]?.totalMinutes || 0) / 60
@@ -71,7 +73,7 @@ function getChartData(dailyUsage: Record<string, { totalMinutes: number }>, peri
         for (let d = 0; d < 7; d++) {
           const target = new Date(now);
           target.setDate(now.getDate() - (w * 7 + d));
-          const targetStr = target.toISOString().split('T')[0];
+          const targetStr = formatLocalISO(target);
           weekMins += dailyUsage[targetStr]?.totalMinutes || 0;
         }
         data.push({ label: `W${4 - w}`, hours: weekMins / (60 * 7) }); // Avg per day in that week
@@ -85,7 +87,7 @@ function getChartData(dailyUsage: Record<string, { totalMinutes: number }>, peri
         let daysInMonth = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
         
         for (let d = 1; d <= daysInMonth; d++) {
-          const ds = new Date(target.getFullYear(), target.getMonth(), d).toISOString().split('T')[0];
+          const ds = formatLocalISO(new Date(target.getFullYear(), target.getMonth(), d));
           monthMins += dailyUsage[ds]?.totalMinutes || 0;
         }
         data.push({ 
@@ -102,7 +104,7 @@ function getChartData(dailyUsage: Record<string, { totalMinutes: number }>, peri
         const daysInMonth = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
         
         for (let d = 1; d <= daysInMonth; d++) {
-          const ds = new Date(target.getFullYear(), target.getMonth(), d).toISOString().split('T')[0];
+          const ds = formatLocalISO(new Date(target.getFullYear(), target.getMonth(), d));
           monthMins += dailyUsage[ds]?.totalMinutes || 0;
         }
         data.push({ 
@@ -112,6 +114,7 @@ function getChartData(dailyUsage: Record<string, { totalMinutes: number }>, peri
       }
       break;
     }
+
   }
   return data;
 }
@@ -175,8 +178,9 @@ export default function StatsScreen() {
     for (let i = 0; i < 7; i++) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      const dStr = d.toISOString().split('T')[0];
+      const dStr = formatLocalISO(d);
       const hours = (dailyUsage[dStr]?.totalMinutes || 0) / 60;
+
       
       sumHours += hours;
       saved += Math.max(0, GOAL_HOURS - hours);

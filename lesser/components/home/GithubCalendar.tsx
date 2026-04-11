@@ -4,8 +4,10 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { t } from '@/constants/i18n';
+import { formatLocalISO } from '@/services/usage';
 
 const GRID_GAP = 4;
+
 
 interface CalendarData {
   date: Date;
@@ -47,16 +49,17 @@ export function GithubCalendar({ data }: GithubCalendarProps) {
     }
 
     // 2. Add real days
-    const dataMap = new Map(data.map(d => [d.date.toISOString().split('T')[0], d.usageMinutes]));
+    const dataMap = new Map(data.map(d => [formatLocalISO(d.date), d.usageMinutes]));
 
     for (let day = 1; day <= daysInMonth; day++) {
         const d = new Date(year, month, day);
-        const dStr = d.toISOString().split('T')[0];
+        const dStr = formatLocalISO(d);
         grid.push({
             date: d,
             usageMinutes: dataMap.get(dStr) ?? 0
         });
     }
+
 
     // 3. Optional: Add padding to fill the last row (we want 7 columns)
     // but the grid display handles that if we use flexWrap
@@ -66,25 +69,31 @@ export function GithubCalendar({ data }: GithubCalendarProps) {
 
   const getIntensity = (minutes: number) => {
     if (minutes < 0) return -1;
-    if (minutes === 0) return 0; // No usage yet
-    if (minutes < 30) return 1;
-    if (minutes < 60) return 2;
-    if (minutes < 120) return 3;
-    return 4;
+    if (minutes === 0) return 5; // Caso especial: 0 minutos (Negro)
+    if (minutes <= 30) return 4;
+    if (minutes <= 90) return 3;
+    if (minutes <= 180) return 2;
+    if (minutes <= 300) return 1;
+    return 0;
   };
+
+
 
 
   const getColor = (intensity: number) => {
     if (intensity < 0) return 'transparent';
-    if (intensity === 0) return colors.border + '33'; // Very faint gray for days in month with 0 mins
+    if (intensity === 5) return '#000000'; // Negro para 0 minutos
     switch (intensity) {
       case 4: return colors.success;
       case 3: return colors.success + 'AA';
       case 2: return colors.success + '66';
       case 1: return colors.success + '33';
+      case 0: return colors.success + '15'; // Verde muy claro
       default: return colors.border;
     }
   };
+
+
 
   const dayLabels = [
     t('stats.days.mon').substring(0, 1),
@@ -142,11 +151,12 @@ export function GithubCalendar({ data }: GithubCalendarProps) {
 
       <View style={styles.legend}>
         <ThemedText style={[styles.legendText, { color: colors.textSecondary }]}>{t('home.lessUsage')}</ThemedText>
-        {[0, 1, 2, 3, 4].map(i => (
+        {[5, 4, 3, 2, 1, 0].map(i => (
           <View key={i} style={[styles.legendSquare, { backgroundColor: getColor(i), borderColor: colors.border }]} />
         ))}
         <ThemedText style={[styles.legendText, { color: colors.textSecondary }]}>{t('home.moreUsage')}</ThemedText>
       </View>
+
 
     </View>
   );

@@ -19,7 +19,19 @@ export interface UsageSummary {
 
 
 /**
+ * Helper to get a stable YYYY-MM-DD string based on LOCAL time.
+ * Prevents the 1-day offset caused by UTC toISOString().
+ */
+export function formatLocalISO(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/**
  * Subscribes to time-based usage statistics in real-time.
+
  * Aggregates data for the 24h, 7d, and 30d bars + the 35-day consistency map.
  */
 export function subscribeToUsageData(
@@ -32,7 +44,8 @@ export function subscribeToUsageData(
     const data = snapshot.val() || {};
     const dailyUsage = data.daily_usage || {};
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
+    const todayStr = formatLocalISO(now);
+
 
 
     // 1. Calculate totals for different windows
@@ -41,8 +54,9 @@ export function subscribeToUsageData(
       for (let i = 0; i < days; i++) {
         const d = new Date(now);
         d.setDate(d.getDate() - i);
-        const dStr = d.toISOString().split('T')[0];
+        const dStr = formatLocalISO(d);
         total += dailyUsage[dStr]?.totalMinutes || 0;
+
       }
       return total / 60; // Return in hours
     };
@@ -56,12 +70,13 @@ export function subscribeToUsageData(
     for (let i = 34; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(d.getDate() - i);
-      const dStr = d.toISOString().split('T')[0];
+      const dStr = formatLocalISO(d);
       calendarData.push({
         date: d,
         usageMinutes: dailyUsage[dStr]?.totalMinutes || 0
       });
     }
+
 
     callback({
       streakDays: data.streakDays ?? 0,
