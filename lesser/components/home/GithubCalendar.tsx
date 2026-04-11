@@ -1,11 +1,13 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, LayoutChangeEvent } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { t } from '@/constants/i18n';
+import { formatLocalISO } from '@/services/usage';
 
-const GRID_GAP = 3;
+const GRID_GAP = 4;
+
 
 interface CalendarData {
   date: Date;
@@ -25,16 +27,56 @@ export function GithubCalendar({ data }: GithubCalendarProps) {
     setContainerWidth(e.nativeEvent.layout.width);
   }, []);
 
-  // Fill to exactly 35 cells (5 weeks × 7 days)
-  const padded = [...Array(Math.max(0, 35 - data.length)).fill({ date: new Date(0), usageMinutes: -1 }), ...data].slice(-35);
+  const { days, monthName } = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    
+    // First day of month (0-6, where 0 is Sunday)
+    const firstDayOfMonth = new Date(year, month, 1).getDay();
+    // Adjust to Monday = 0, Sunday = 6
+    const startPadding = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
+    
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const monthName = now.toLocaleString('default', { month: 'long' });
+
+    // Create the grid data
+    const grid: { date: Date | null; usageMinutes: number }[] = [];
+    
+    // 1. Add padding for the first week
+    for (let i = 0; i < startPadding; i++) {
+        grid.push({ date: null, usageMinutes: -1 });
+    }
+
+    // 2. Add real days
+    const dataMap = new Map(data.map(d => [formatLocalISO(d.date), d.usageMinutes]));
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const d = new Date(year, month, day);
+        const dStr = formatLocalISO(d);
+        grid.push({
+            date: d,
+            usageMinutes: dataMap.get(dStr) ?? 0
+        });
+    }
+
+
+    // 3. Optional: Add padding to fill the last row (we want 7 columns)
+    // but the grid display handles that if we use flexWrap
+    
+    return { days: grid, monthName };
+  }, [data]);
 
   const getIntensity = (minutes: number) => {
-    if (minutes < 0) return -1;  // empty pad
-    if (minutes < 30) return 4;
-    if (minutes < 60) return 3;
-    if (minutes < 120) return 2;
-    return 1;
+    if (minutes < 0) return -1;
+    if (minutes <= 30) return 0; // Poco uso => Verde muy claro
+    if (minutes <= 90) return 1;
+    if (minutes <= 180) return 2;
+    if (minutes <= 300) return 3;
+    return 4; // Mucho uso => Verde oscuro
   };
+
+
 
   const getColor = (intensity: number) => {
     if (intensity < 0) return 'transparent';
@@ -43,18 +85,26 @@ export function GithubCalendar({ data }: GithubCalendarProps) {
       case 3: return colors.success + 'AA';
       case 2: return colors.success + '66';
       case 1: return colors.success + '33';
+      case 0: return colors.success + '15'; // Verde muy claro
       default: return colors.border;
     }
   };
 
-  // Split into 5 columns of 7 days
-  const columns: typeof padded[] = [];
-  for (let i = 0; i < padded.length; i += 7) {
-    columns.push(padded.slice(i, i + 7));
-  }
 
-  const numCols = columns.length;
-  // Compute square size from actual measured width
+
+
+  const dayLabels = [
+    t('stats.days.mon').substring(0, 1),
+    t('stats.days.tue').substring(0, 1),
+    t('stats.days.wed').substring(0, 1),
+    t('stats.days.thu').substring(0, 1),
+    t('stats.days.fri').substring(0, 1),
+    t('stats.days.sat').substring(0, 1),
+    t('stats.days.sun').substring(0, 1),
+  ];
+
+  // Calculate square size based on 7 columns
+  const numCols = 7;
   const totalGap = GRID_GAP * (numCols - 1);
   const squareSize = containerWidth > 0
     ? Math.floor((containerWidth - totalGap) / numCols)
@@ -62,72 +112,107 @@ export function GithubCalendar({ data }: GithubCalendarProps) {
 
   return (
     <View style={styles.outer} onLayout={onLayout}>
-      <ThemedText style={styles.title}>{t('home.consistencyMap')}</ThemedText>
+      <View style={styles.header}>
+        <ThemedText style={styles.title}>{t('home.consistencyMap')}</ThemedText>
+        <ThemedText style={[styles.monthLabel, { color: colors.textSecondary }]}>{monthName}</ThemedText>
+      </View>
+
       {containerWidth > 0 && (
-        <View style={styles.grid}>
-          {columns.map((col, colIdx) => (
-            <View key={colIdx} style={styles.column}>
-              {col.map((day, dayIdx) => (
-                <View
-                  key={dayIdx}
-                  style={[
-                    styles.square,
-                    {
-                      width: squareSize,
-                      height: squareSize,
-                      backgroundColor: getColor(getIntensity(day.usageMinutes)),
-                    },
-                  ]}
-                />
-              ))}
-            </View>
-          ))}
+        <View style={styles.calendarContainer}>
+          {/* Day Labels Row */}
+          <View style={styles.labelsRow}>
+            {dayLabels.map((l, i) => (
+              <ThemedText key={i} style={[styles.labelText, { width: squareSize, color: colors.textSecondary }]}>
+                {l}
+              </ThemedText>
+            ))}
+          </View>
+
+          {/* Grid */}
+          <View style={styles.grid}>
+            {days.map((day, idx) => (
+              <View
+                key={idx}
+                style={[
+                  styles.square,
+                  {
+                    width: squareSize,
+                    height: squareSize * 0.8, // User wants it "wider than tall"
+                    backgroundColor: getColor(getIntensity(day.usageMinutes)),
+                  },
+                ]}
+              />
+            ))}
+          </View>
         </View>
       )}
+
       <View style={styles.legend}>
-        <ThemedText style={[styles.legendText, { color: colors.textSecondary }]}>{t('home.moreUsage')}</ThemedText>
+        <ThemedText style={[styles.legendText, { color: colors.textSecondary }]}>{t('home.lessUsage')}</ThemedText>
         {[0, 1, 2, 3, 4].map(i => (
           <View key={i} style={[styles.legendSquare, { backgroundColor: getColor(i), borderColor: colors.border }]} />
         ))}
-        <ThemedText style={[styles.legendText, { color: colors.textSecondary }]}>{t('home.lessUsage')}</ThemedText>
+        <ThemedText style={[styles.legendText, { color: colors.textSecondary }]}>{t('home.moreUsage')}</ThemedText>
       </View>
+
+
+
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  outer: { gap: 10, width: '100%' },
+  outer: { gap: 12, width: '100%' },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 4,
+  },
   title: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 4,
+    letterSpacing: 1,
+  },
+  monthLabel: {
+    fontSize: 12,
+    textTransform: 'capitalize',
+    fontWeight: '600',
+  },
+  calendarContainer: {
+    gap: 8,
+  },
+  labelsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingBottom: 4,
+  },
+  labelText: {
+    fontSize: 10,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   grid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: GRID_GAP,
     width: '100%',
   },
-  column: {
-    gap: GRID_GAP,
-    flex: 1,
-  },
   square: {
-    borderRadius: 3,
+    borderRadius: 4,
   },
   legend: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    gap: 5,
+    gap: 6,
     marginTop: 4,
   },
   legendText: { fontSize: 11 },
   legendSquare: {
-    width: 9,
-    height: 9,
+    width: 10,
+    height: 10,
     borderRadius: 2,
-    borderWidth: StyleSheet.hairlineWidth,
   },
 });
