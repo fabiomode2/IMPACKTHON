@@ -5,6 +5,7 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
+import { useAppTimeTracker } from '@/hooks/useAppTimeTracker';
 import { useEffect } from 'react';
 import { useRouter, useSegments, useRootNavigationState } from 'expo-router';
 
@@ -15,6 +16,10 @@ export const unstable_settings = {
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
   const { isOnboarded, authCompleted, isLoading } = useAuth();
+  
+  // Initialize global background time tracker
+  useAppTimeTracker();
+  
   const segments = useSegments();
   const router = useRouter();
   const navigationState = useRootNavigationState();
