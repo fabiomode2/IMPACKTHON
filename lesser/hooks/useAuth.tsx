@@ -1,9 +1,16 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import React from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { auth, db } from '@/services/firebase';
-import { loginUser, registerUser, logoutUser, Mode, UserProfile } from '@/services/auth';
+import { ref, get } from 'firebase/database';
+import { auth, rtdb } from '@/services/firebase';
+import { 
+  loginUser, 
+  registerUser, 
+  logoutUser, 
+  updateUserProfile,
+  Mode, 
+  UserProfile 
+} from '@/services/auth';
 
 export type { Mode };
 
@@ -20,7 +27,6 @@ interface AuthState {
   login: (username: string, password: string) => Promise<boolean>;
   register: (username: string, password: string) => Promise<boolean>;
   updateProfile: (data: Partial<UserProfile>) => Promise<boolean>;
-  skipAuth: () => void;
   logout: () => void;
   setMode: (mode: Mode) => void;
 }
@@ -41,45 +47,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
-          const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
-          const data = snap.data();
-          const profile: UserProfile = {
-            uid: firebaseUser.uid,
-            username: data?.username ?? firebaseUser.email?.split('@')[0] ?? 'User',
-            email: firebaseUser.email ?? undefined,
-            mode: data?.mode ?? 'mid',
-            streakDays: data?.streakDays ?? 0,
-            createdAt: data?.createdAt?.toDate() ?? new Date(),
-          };
+          const snap = await get(ref(rtdb, `users/${firebaseUser.uid}`));
+          const data = snap.val();
+          
+          if (data) {
+            const profile: UserProfile = {
+              uid: firebaseUser.uid,
+              username: data.username ?? firebaseUser.email?.split('@')[0] ?? 'User',
+              email: firebaseUser.email ?? undefined,
+              mode: data.mode ?? 'mid',
+              streakDays: data.streakDays ?? 0,
+              createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
+            };
 
-          // Lazy Migration: If the user doesn't have the modern lowercase field, add it organically.
-          if (!data?.username_lowercase && data?.username) {
-             updateDoc(doc(db, 'users', firebaseUser.uid), {
-                username_lowercase: data.username.toLowerCase()
-             }).catch(e => console.error("Migration failed:", e));
+            setUser(profile);
+            setModeState(profile.mode);
+            setIsLoggedIn(true);
+            setAuthCompleted(true);
+            setIsOnboarded(true);
+          } else {
+            // Document doesn't exist yet (e.g. registration failed mid-way or ghost auth)
+            setUser(null);
+            setIsLoggedIn(false);
+            setAuthCompleted(false);
           }
-
-          setUser(profile);
-          setModeState(profile.mode);
-          setIsLoggedIn(true);
-          setAuthCompleted(true);
-          setIsOnboarded(true);
-        } catch {
-          // Fallback
-          setUser({
-            uid: firebaseUser.uid,
-            username: firebaseUser.email?.split('@')[0] ?? 'User',
-            mode: 'mid',
-            streakDays: 0,
-            createdAt: new Date(),
-          });
-          setIsLoggedIn(true);
-          setAuthCompleted(true);
-          setIsOnboarded(true);
+        } catch (error) {
+          console.error("Error fetching user profile from RTDB:", error);
+          setUser(null);
+          setIsLoggedIn(false);
+          setAuthCompleted(false);
         }
       } else {
         setUser(null);
         setIsLoggedIn(false);
+        setAuthCompleted(false);
       }
       setIsLoading(false);
     });
@@ -146,16 +147,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const skipAuth = () => {
-    setAuthCompleted(true);
-    setIsLoading(false);
-  };
-
   const logout = async () => {
     await logoutUser();
     setUser(null);
     setIsLoggedIn(false);
     setAuthCompleted(false);
+    // Note: We don't reset isOnboarded so they don't see the carousel again, 
+    // unless you want them to. Usually onboarded means they finished the intro.
   };
 
   const setMode = (newMode: Mode) => {
@@ -178,7 +176,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         register,
         updateProfile,
-        skipAuth,
         logout,
         setMode,
       }}

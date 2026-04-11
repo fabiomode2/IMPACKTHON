@@ -16,7 +16,7 @@ export default function AuthScreen() {
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
 
-  const { login, register, skipAuth, isLoading, lastError } = useAuth();
+  const { login, register, isLoading, lastError } = useAuth();
   const router = useRouter();
   const theme = useColorScheme() ?? 'light';
   const colors = Colors[theme];
@@ -28,6 +28,23 @@ export default function AuthScreen() {
       return;
     }
     
+    if (!isLogin) {
+       // Registration specific validations
+       if (usernameInput.trim().length < 3) {
+         setLocalError('El nombre de usuario debe tener al menos 3 caracteres.');
+         return;
+       }
+       const usernameRegex = /^[a-zA-Z0-9_]+$/;
+       if (!usernameRegex.test(usernameInput.trim())) {
+         setLocalError('El nombre de usuario solo puede contener letras, números y guiones bajos.');
+         return;
+       }
+       if (password.length < 6) {
+         setLocalError('La contraseña debe tener al menos 6 caracteres.');
+         return;
+       }
+    }
+    
     const success = isLogin
       ? await login(usernameInput.trim(), password)
       : await register(usernameInput.trim(), password);
@@ -35,11 +52,6 @@ export default function AuthScreen() {
     if (success) {
       router.replace('/(tabs)/home');
     }
-  };
-
-  const handleSkip = () => {
-    skipAuth();
-    router.replace('/(tabs)/home');
   };
 
   const activeError = localError || lastError;
@@ -119,14 +131,6 @@ export default function AuthScreen() {
             </ThemedText>
           </TouchableOpacity>
         </View>
-
-        <View style={styles.footer}>
-          <TouchableOpacity style={styles.skipButton} onPress={handleSkip} disabled={isLoading}>
-            <ThemedText style={[styles.skipText, { color: colors.textSecondary }]}>
-              {t('auth.skipButton')}
-            </ThemedText>
-          </TouchableOpacity>
-        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -187,7 +191,4 @@ const styles = StyleSheet.create({
   },
   buttonText: { color: '#FFFFFF', fontSize: 18, fontWeight: '800' },
   switchButton: { alignItems: 'center', paddingVertical: 12 },
-  footer: { marginTop: 40, alignItems: 'center' },
-  skipButton: { padding: 16 },
-  skipText: { fontSize: 15, fontWeight: '600' },
 });

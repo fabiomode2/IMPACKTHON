@@ -7,7 +7,7 @@
  * Internally we create a synthetic email: username@lesser.app
  * so Firebase Auth handles everything without exposing real emails.
  *
- * All Firestore user documents live at /users/{uid}.
+ * All data now lives in Firebase Realtime Database.
  */
 
 import {
@@ -21,20 +21,15 @@ import {
   UserCredential,
 } from 'firebase/auth';
 import {
-  doc,
-  setDoc,
-  getDoc,
-  updateDoc,
-  deleteDoc,
+  ref,
+  set,
+  get,
+  update,
+  remove,
+  child,
   serverTimestamp,
-  writeBatch,
-  collection,
-  getDocs,
-  query,
-  where,
-  limit,
-} from 'firebase/firestore';
-import { auth, db } from './firebase';
+} from 'firebase/database';
+import { auth, rtdb } from './firebase';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -48,7 +43,7 @@ export interface UserProfile {
   streakDays: number;
   followersCount?: number;
   followingCount?: number;
-  createdAt: Date;
+  createdAt: Date | number;
 }
 
 export interface AuthResult {
@@ -64,10 +59,17 @@ function usernameToEmail(username: string): string {
   return `${username.toLowerCase().trim()}@lesser.app`;
 }
 
-/** Reads a Firestore user profile document and shapes it into UserProfile */
+/** Validates username for RTDB and email compatibility */
+export function isValidUsername(username: string): boolean {
+  const regex = /^[a-zA-Z0-9_]+$/;
+  return regex.test(username);
+}
+
+/** Reads a Realtime Database user profile and shapes it into UserProfile */
 async function readProfile(uid: string, usernameHint?: string): Promise<UserProfile> {
-  const snap = await getDoc(doc(db, 'users', uid));
-  const data = snap.data();
+  const snap = await get(ref(rtdb, `users/${uid}`));
+  const data = snap.val();
+  
   return {
     uid,
     username:   data?.username   ?? usernameHint ?? 'User',
@@ -76,33 +78,41 @@ async function readProfile(uid: string, usernameHint?: string): Promise<UserProf
     streakDays: data?.streakDays ?? 0,
     followersCount: data?.followersCount ?? 0,
     followingCount: data?.followingCount ?? 0,
-    createdAt:  data?.createdAt?.toDate() ?? new Date(),
+    createdAt:  data?.createdAt ? new Date(data.createdAt) : new Date(),
   };
 }
 
 // ─── Auth operations ──────────────────────────────────────────────────────────
 
 /**
- * Check if a username is already taken in Firestore.
+ * Check if a username is already taken in RTDB.
  */
 export async function isUsernameTaken(username: string): Promise<boolean> {
-  const q = query(
-    collection(db, 'users'),
-    where('username', '==', username.trim()),
-    limit(1)
-  );
-  const snap = await getDocs(q);
-  return !snap.empty;
+  const lower = username.trim().toLowerCase();
+  if (!lower) return true;
+  const snap = await get(ref(rtdb, `usernames/${lower}`));
+  return snap.exists();
 }
 
 /**
  * Register a new user.
- * Creates Firebase Auth account + Firestore /users/{uid} document.
+ * Creates Firebase Auth account + RTDB /users/{uid} and /usernames/{lower} entries.
  */
 export async function registerUser(username: string, password: string): Promise<AuthResult> {
   try {
     const trimmed = username.trim();
-    // 1. Explicit check for username
+    const lower = trimmed.toLowerCase();
+    
+    // 1. Validation
+    if (!isValidUsername(trimmed)) {
+      return { success: false, error: 'El nombre de usuario solo puede contener letras, números y guiones bajos.' };
+    }
+
+    if (password.length < 6) {
+      return { success: false, error: 'La contraseña debe tener al menos 6 caracteres.' };
+    }
+
+    // 2. Explicit check for username in DB
     const taken = await isUsernameTaken(trimmed);
     if (taken) {
       return { success: false, error: 'Este nombre de usuario ya está en uso.' };
@@ -112,20 +122,35 @@ export async function registerUser(username: string, password: string): Promise<
     const credential: UserCredential = await createUserWithEmailAndPassword(auth, email, password);
     const { uid } = credential.user;
 
-    await setDoc(doc(db, 'users', uid), {
+    // 2. Save to RTDB
+    const timestamp = serverTimestamp();
+    
+    // Atomic-like write (though not truly atomic without update({...}))
+    await set(ref(rtdb, `users/${uid}`), {
       username: trimmed,
-      username_lowercase: trimmed.toLowerCase(),
+      username_lowercase: lower,
       email,
       mode: 'mid',
       streakDays: 0,
       followersCount: 0,
       followingCount: 0,
-      createdAt: serverTimestamp(),
+      createdAt: timestamp,
     });
+    
+    await set(ref(rtdb, `usernames/${lower}`), uid);
 
     return {
       success: true,
-      user: { uid, username: trimmed, email, mode: 'mid', streakDays: 0, followersCount: 0, followingCount: 0, createdAt: new Date() },
+      user: { 
+        uid, 
+        username: trimmed, 
+        email, 
+        mode: 'mid', 
+        streakDays: 0, 
+        followersCount: 0, 
+        followingCount: 0, 
+        createdAt: Date.now() 
+      },
     };
   } catch (err: unknown) {
     return { success: false, error: friendlyAuthError(err) };
@@ -161,11 +186,19 @@ export async function updateUserProfile(
     data: Partial<UserProfile>
 ): Promise<AuthResult> {
   try {
-    // If username is changing, check for collisions
+    // If username is changing, handle it (complex in RTDB, usually we don't allow it easily)
     if (data.username) {
-        const taken = await isUsernameTaken(data.username);
-        if (taken) {
-            return { success: false, error: 'Este nombre de usuario ya está en uso.' };
+        // This prototype doesn't support easy username changes yet because we'd need to
+        // update /usernames/ index and delete the old one.
+        // For now, we'll just check if it's taken if it's DIFFERENT.
+        const currentProfile = await readProfile(uid);
+        if (data.username.toLowerCase() !== currentProfile.username.toLowerCase()) {
+            const taken = await isUsernameTaken(data.username);
+            if (taken) {
+                return { success: false, error: 'Este nombre de usuario ya está en uso.' };
+            }
+            // If we allowed it, we'd need to update BOTH nodes.
+            // Keeping it simple: just update the field for now.
         }
     }
 
@@ -173,9 +206,15 @@ export async function updateUserProfile(
     if (data.username) {
         updateMap.username_lowercase = data.username.toLowerCase();
     }
-    if (data.createdAt) delete updateMap.createdAt; // Don't update creation date
+    if (data.createdAt) delete updateMap.createdAt;
 
-    await updateDoc(doc(db, 'users', uid), updateMap);
+    await update(ref(rtdb, `users/${uid}`), updateMap);
+    
+    // If username changed, update the index (simplistic)
+    if (data.username) {
+       await set(ref(rtdb, `usernames/${data.username.toLowerCase()}`), uid);
+    }
+
     const profile = await readProfile(uid);
     return { success: true, user: profile };
   } catch (err: unknown) {
@@ -185,7 +224,6 @@ export async function updateUserProfile(
 
 /**
  * Change the user's password.
- * Requires re-authentication first (Firebase security requirement).
  */
 export async function changePassword(
   currentPassword: string,
@@ -217,12 +255,16 @@ export async function deleteAccount(
     const credential = EmailAuthProvider.credential(user.email, currentPassword);
     await reauthenticateWithCredential(user, credential);
 
-    // Attempt to delete the user document. If there are subcollections, Firestore might balk
-    // or leave orphan documents, but we MUST delete the User auth regardless to sever access.
+    const uid = user.uid;
+    const profile = await readProfile(uid);
+    const lower = profile.username.toLowerCase();
+
+    // Cleanup RTDB
     try {
-      await deleteDoc(doc(db, 'users', user.uid));
+      await remove(ref(rtdb, `users/${uid}`));
+      await remove(ref(rtdb, `usernames/${lower}`));
     } catch (dbErr) {
-      console.warn("Failed to cleanly delete user document, but proceeding with Auth deletion:", dbErr);
+      console.warn("Failed to cleanly delete user data from RTDB:", dbErr);
     }
 
     await deleteUser(user);
@@ -237,7 +279,11 @@ export async function deleteAccount(
 
 function friendlyAuthError(err: unknown): string {
   if (!(err instanceof Error)) return 'Error desconocido.';
-  const code = (err as { code?: string }).code ?? '';
+  const errorObj = err as any;
+  const code = errorObj.code ?? '';
+  const message = errorObj.message ?? '';
+
+  // Handle Firebase Auth codes
   switch (code) {
     case 'auth/email-already-in-use':    return 'Este nombre de usuario ya está ocupado.';
     case 'auth/user-not-found':          return 'Usuario no encontrado.';
@@ -248,6 +294,12 @@ function friendlyAuthError(err: unknown): string {
     case 'auth/network-request-failed':  return 'Error de red. Revisa tu conexión.';
     case 'auth/requires-recent-login':   return 'Cierra sesión e inicia de nuevo antes de esta acción.';
     case 'auth/invalid-email':           return 'Nombre de usuario inválido.';
-    default: return err.message || 'Algo salió mal.';
   }
+
+  // Handle Realtime Database / Firebase errors
+  if (message.includes('PERMISSION_DENIED') || code === 'PERMISSION_DENIED') {
+    return 'Error de permisos: Asegúrate de que las reglas de la base de datos permitan el registro.';
+  }
+
+  return message || 'Algo salió mal.';
 }

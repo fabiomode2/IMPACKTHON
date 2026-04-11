@@ -1,12 +1,12 @@
 /**
  * services/settings.ts
  *
- * Firestore-backed user settings service.
- * Settings live at /users/{uid}/settings/preferences
+ * Realtime Database-backed user settings service.
+ * Settings live at /users/{uid}/settings
  */
 
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from './firebase';
+import { ref, get, set, update } from 'firebase/database';
+import { rtdb } from './firebase';
 import { Mode } from './auth';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -44,14 +44,14 @@ export const DEFAULT_SETTINGS: UserSettings = {
 // ─── Operations ───────────────────────────────────────────────────────────────
 
 /**
- * Fetch user settings from Firestore.
- * Falls back to defaults if no settings document exists yet.
+ * Fetch user settings from Realtime Database.
+ * Falls back to defaults if no settings node exists yet.
  */
 export async function fetchSettings(uid: string): Promise<UserSettings> {
   try {
-    const snap = await getDoc(doc(db, 'users', uid, 'settings', 'preferences'));
+    const snap = await get(ref(rtdb, `users/${uid}/settings`));
     if (snap.exists()) {
-      const data = snap.data();
+      const data = snap.val();
       return {
         mode:                 data.mode                 ?? DEFAULT_SETTINGS.mode,
         whitelistedApps:      data.whitelistedApps      ?? DEFAULT_SETTINGS.whitelistedApps,
@@ -66,12 +66,8 @@ export async function fetchSettings(uid: string): Promise<UserSettings> {
 }
 
 /**
- * Persist user settings to Firestore (merge so partial updates are safe).
+ * Persist user settings to Realtime Database.
  */
 export async function saveSettings(uid: string, settings: Partial<UserSettings>): Promise<void> {
-  await setDoc(
-    doc(db, 'users', uid, 'settings', 'preferences'),
-    settings,
-    { merge: true },
-  );
+  await update(ref(rtdb, `users/${uid}/settings`), settings);
 }
