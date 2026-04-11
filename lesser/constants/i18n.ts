@@ -195,7 +195,17 @@ const en = {
     dayStreak: 'day streak',
     vsUsers: 'vs users',
     tapToCycle: 'Tap to cycle →',
+    days: {
+      mon: 'Mon',
+      tue: 'Tue',
+      wed: 'Wed',
+      thu: 'Thu',
+      fri: 'Fri',
+      sat: 'Sat',
+      sun: 'Sun',
+    },
   },
+
 
   // ── Followers ────────────────────────────────────────────
   followers: {
@@ -313,7 +323,11 @@ const es: Strings = {
     avgDaily: 'Media diaria', savedLabel: 'Ahorrado en el período', daysOnGoal: 'Días en objetivo', bestDay: 'Mejor día',
     goalLine: 'Objetivo {{h}}h', monthlySnapshot: 'Resumen mensual',
     savedThisMonth: 'ahorrado este mes', dayStreak: 'días de racha', vsUsers: 'vs usuarios', tapToCycle: 'Toca para cambiar →',
+    days: {
+      mon: 'L', tue: 'M', wed: 'X', thu: 'J', fri: 'V', sat: 'S', sun: 'D'
+    },
   },
+
   followers: {
     title: 'Seguidores',
     searchPlaceholder: 'Buscar seguidores…',
