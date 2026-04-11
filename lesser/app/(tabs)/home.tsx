@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, ScrollView, SafeAreaView, View, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,6 +14,7 @@ import { TopUsersBadge } from '@/components/home/TopUsersBadge';
 import { GithubCalendar } from '@/components/home/GithubCalendar';
 import { MostUsedApps } from '@/components/home/MostUsedApps';
 import { ThemedText } from '@/components/themed-text';
+import { checkAndPostMilestones } from '@/services/social';
 
 function getSavingsText(savedHours: number): string {
   if (savedHours >= 12) return t('home.comparisons.show');
@@ -38,6 +39,14 @@ export default function HomeScreen() {
   const usageHoursMonth = 88.4;
   const usageHours6Months = 510.2;
   const topPercentage = 15;
+
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      checkAndPostMilestones(user.uid, user.username, streakDays, topPercentage);
+    }
+  }, [user, streakDays, topPercentage]);
 
   const goalHours = 4;
   const savedToday = Math.max(0, goalHours - usageHours24h);

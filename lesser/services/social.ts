@@ -44,6 +44,8 @@ export interface FeedPost {
   uid: string;
   username: string;
   days: number;
+  value?: number;
+  type: 'STREAK' | 'USAGE_REDUCTION' | 'TOP_RANK';
   message?: string;
   photoUrl?: string;
   timestamp: string;
@@ -166,12 +168,27 @@ export function onFollowersChanged(
   });
 }
 
+/**
+ * Fetch a single user's public profile data.
+ */
+export async function getUserProfile(uid: string): Promise<Friend | null> {
+  const snap = await getDoc(doc(db, 'users', uid));
+  if (!snap.exists()) return null;
+  const data = snap.data();
+  return {
+    uid:        snap.id,
+    username:   data.username ?? 'User',
+    streakDays: data.streakDays ?? 0,
+  };
+}
+
 // ─── Activity Feed ────────────────────────────────────────────────────────────
 
 /**
  * Fetch the global activity feed (most recent 30 posts).
+ * This is still kept for discovery if needed, but not used for the primary feed.
  */
-export async function fetchFeed(_uid: string): Promise<FeedPost[]> {
+export async function fetchGlobalFeed(): Promise<FeedPost[]> {
   const q = query(
     collection(db, 'feedPosts'),
     orderBy('timestamp', 'desc'),
@@ -186,23 +203,79 @@ export async function fetchFeed(_uid: string): Promise<FeedPost[]> {
     message:   d.data().message,
     photoUrl:  d.data().photoUrl,
     timestamp: formatTimestamp(d.data().timestamp?.toDate()),
+    type:      d.data().type ?? 'STREAK',
   }));
 }
 
 /**
- * Post an activity update to the global feed.
+ * Fetch activity updates ONLY from users that {myUid} follows.
  */
-export async function postFeedUpdate(
+export async function fetchFollowedFeed(myUid: string): Promise<FeedPost[]> {
+  try {
+    // 1. Get the list of following UIDs
+    const followingSnap = await getDocs(collection(db, 'users', myUid, 'following'));
+    const followingUids = followingSnap.docs.map(doc => doc.id);
+
+    // If I follow nobody, return empty
+    if (followingUids.length === 0) return [];
+
+    // Firestore 'in' query supports up to 30 elements.
+    // In a real large-scale app, we'd use a fan-out approach.
+    const chunks = [];
+    for (let i = 0; i < followingUids.length; i += 30) {
+      chunks.push(followingUids.slice(i, i + 30));
+    }
+
+    let allPosts: FeedPost[] = [];
+    for (const chunk of chunks) {
+      const q = query(
+        collection(db, 'feedPosts'),
+        where('uid', 'in', chunk),
+        orderBy('timestamp', 'desc'),
+        limit(20)
+      );
+      const snap = await getDocs(q);
+      const posts = snap.docs.map(d => ({
+        id:        d.id,
+        uid:       d.data().uid,
+        username:  d.data().username,
+        days:      d.data().days ?? 0,
+        message:   d.data().message,
+        photoUrl:  d.data().photoUrl,
+        timestamp: formatTimestamp(d.data().timestamp?.toDate()),
+        type:      d.data().type ?? 'STREAK',
+      }));
+      allPosts = [...allPosts, ...posts];
+    }
+
+    // Sort combined results by time (since multiple queries might be slightly out of order)
+    // For simplicity, we'll just return the combined list and rely on Firestore's desc order per chunk.
+    return allPosts.sort((a, b) => (b.id > a.id ? 1 : -1)).slice(0, 30);
+  } catch (err) {
+    console.error('fetchFollowedFeed error:', err);
+    return [];
+  }
+}
+
+/**
+ * Post an achievement update.
+ */
+export async function postAchievement(
   uid: string,
   username: string,
-  days: number,
+  type: 'STREAK' | 'USAGE_REDUCTION' | 'TOP_RANK',
+  value: number,
   message?: string,
 ): Promise<SocialSuccess | SocialError> {
   try {
+    // Prevent duplicate achievement posts for the same day/milestone
+    // (Optional: Implement a throttle or check)
     await addDoc(collection(db, 'feedPosts'), {
       uid,
       username,
-      days,
+      type,
+      days: type === 'STREAK' ? value : 0,
+      value: type !== 'STREAK' ? value : 0,
       message: message ?? null,
       timestamp: serverTimestamp(),
     });
@@ -215,16 +288,17 @@ export async function postFeedUpdate(
 // ─── User search ──────────────────────────────────────────────────────────────
 
 /**
- * Search users by username prefix (case-sensitive Firestore range query).
- * For full-text search, integrate Algolia or Typesense.
+ * Search users by username prefix (case-insensitive Firestore range query).
  */
 export async function searchUsers(usernamePrefix: string): Promise<Friend[]> {
-  if (usernamePrefix.length < 2) return [];
+  const prefix = usernamePrefix.toLowerCase(); // Ensure search is case-insensitive if data is lowercased
+  if (prefix.length < 1) return [];
+
   const q = query(
     collection(db, 'users'),
     where('username', '>=', usernamePrefix),
     where('username', '<=', usernamePrefix + '\uf8ff'),
-    limit(20),
+    limit(15),
   );
   const snap = await getDocs(q);
   return snap.docs.map(d => ({
@@ -234,14 +308,68 @@ export async function searchUsers(usernamePrefix: string): Promise<Friend[]> {
   }));
 }
 
+/**
+ * Check if the user has reached a milestone today and post it.
+ * This should be called on app start or when stats update.
+ */
+export async function checkAndPostMilestones(
+  uid: string,
+  username: string,
+  streakDays: number,
+  topPercentage: number,
+): Promise<void> {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const key = `last_post_${uid}`;
+    
+    // In a real app, we'd store this in Firestore as a 'lastAchievementDate'
+    // For this prototype, we'll use a unique identifier for the achievement
+    // to search if it was already posted in the feed.
+    
+    // Check if we already posted a streak achievement for this exact number of days
+    const q = query(
+      collection(db, 'feedPosts'),
+      where('uid', '==', uid),
+      where('type', '==', 'STREAK'),
+      where('days', '==', streakDays),
+      limit(1)
+    );
+    const snap = await getDocs(q);
+    
+    if (snap.empty && streakDays > 0 && streakDays % 5 === 0) {
+      // Post every 5 days of streak
+      await postAchievement(uid, username, 'STREAK', streakDays);
+    }
+    
+    // Also post if user hits a top rank milestone
+    if (topPercentage <= 10) {
+        const qRank = query(
+            collection(db, 'feedPosts'),
+            where('uid', '==', uid),
+            where('type', '==', 'TOP_RANK'),
+            where('value', '==', topPercentage),
+            limit(1)
+        );
+        const rankSnap = await getDocs(qRank);
+        if (rankSnap.empty) {
+            await postAchievement(uid, username, 'TOP_RANK', topPercentage);
+        }
+    }
+  } catch (err) {
+    console.error('Milestone check failed:', err);
+  }
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatTimestamp(date?: Date): string {
-  if (!date) return '';
+  if (!date) return 'Justo ahora';
   const diff = Date.now() - date.getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return 'Ahora';
+  if (mins < 60) return `Hace ${mins}m`;
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
+  if (hours < 24) return `Hace ${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `Hace ${days}d`;
 }

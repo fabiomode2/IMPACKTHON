@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View, StyleSheet, FlatList, SafeAreaView,
   TouchableOpacity, TextInput, Animated, ActivityIndicator,
@@ -12,6 +12,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { t } from '@/constants/i18n';
 import { useAuth } from '@/hooks/useAuth';
 import { useSocial } from '@/hooks/useSocial';
+import { searchUsers, Friend } from '@/services/social';
 
 interface UserRow {
   uid: string;
@@ -26,33 +27,53 @@ export default function FollowersScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
+  const [searchResults, setSearchResults] = useState<Friend[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
-  // Auth context — gives us the current user uid + username
   const { user } = useAuth();
-  const myUid      = user?.uid      ?? null;
+  const myUid = user?.uid ?? null;
   const myUsername = user?.username ?? null;
 
-  // Real-time Firestore social hook
   const { followers, following, isLoadingFollowers, follow, unfollow } = useSocial(myUid, myUsername);
 
-  // Build combined list: followers enriched with "am I following them back?" flag
-  const [users, setUsers] = useState<UserRow[]>([]);
-
+  // Handle live search
   useEffect(() => {
-    const followingSet = new Set(following.map(f => f.uid));
-    setUsers(
-      followers.map(f => ({
-        uid:         f.uid,
-        username:    f.username,
-        streakDays:  f.streakDays,
-        isFollowing: followingSet.has(f.uid),
-      }))
-    );
-  }, [followers, following]);
+    if (search.length < 2) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
 
-  const filtered = users.filter(u =>
-    u.username.toLowerCase().includes(search.toLowerCase())
-  );
+    const delayDebounceFn = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const results = await searchUsers(search);
+        // Don't show myself in search results
+        setSearchResults(results.filter(r => r.uid !== myUid));
+      } catch (e) {
+        console.error('Search failed:', e);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [search, myUid]);
+
+  // Combined list logic
+  // If searching: show search results
+  // If not searching: show followers
+  const displayUsers = useMemo(() => {
+    const followingSet = new Set(following.map(f => f.uid));
+    const sourceList = search.length >= 2 ? searchResults : followers;
+    
+    return sourceList.map(item => ({
+      uid: item.uid,
+      username: item.username,
+      streakDays: item.streakDays,
+      isFollowing: followingSet.has(item.uid),
+    }));
+  }, [search, searchResults, followers, following]);
 
   const toggleFollow = async (uid: string, username: string, currentlyFollowing: boolean) => {
     if (currentlyFollowing) {
@@ -71,11 +92,6 @@ export default function FollowersScreen() {
     />
   );
 
-  const followingCount = filtered.filter(u => u.isFollowing).length;
-  const noun = filtered.length === 1
-    ? t('followers.followerSingular')
-    : t('followers.followerPlural');
-
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       {/* Header */}
@@ -87,7 +103,7 @@ export default function FollowersScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      {/* Search */}
+      {/* Search Input */}
       <View style={[styles.searchContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <IconSymbol name="magnifyingglass" size={18} color={colors.textSecondary} />
         <TextInput
@@ -98,31 +114,37 @@ export default function FollowersScreen() {
           onChangeText={setSearch}
           autoCapitalize="none"
         />
-        {search.length > 0 && (
-          <TouchableOpacity onPress={() => setSearch('')}>
-            <IconSymbol name="xmark.circle.fill" size={18} color={colors.textSecondary} />
-          </TouchableOpacity>
+        {(search.length > 0 || isSearching) && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {isSearching && <ActivityIndicator size="small" color={colors.accent} />}
+            <TouchableOpacity onPress={() => setSearch('')}>
+              <IconSymbol name="xmark.circle.fill" size={18} color={colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
         )}
       </View>
 
-      {/* Count pill */}
+      {/* Count pill / Section Label */}
       <View style={styles.countRow}>
         <ThemedText style={[styles.countText, { color: colors.textSecondary }]}>
-          {t('followers.countSummary', {
-            count: filtered.length,
-            noun,
-            following: followingCount,
-          })}
+          {search.length >= 2 
+            ? `${displayUsers.length} results found`
+            : t('followers.countSummary', {
+                count: followers.length,
+                noun: followers.length === 1 ? t('followers.followerSingular') : t('followers.followerPlural'),
+                following: following.length,
+              })
+          }
         </ThemedText>
       </View>
 
-      {isLoadingFollowers ? (
+      {isLoadingFollowers && search.length < 2 ? (
         <View style={styles.loading}>
           <ActivityIndicator size="large" color={colors.accent} />
         </View>
       ) : (
         <FlatList
-          data={filtered}
+          data={displayUsers}
           keyExtractor={item => item.uid}
           renderItem={renderItem}
           contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 24 }]}
@@ -130,7 +152,9 @@ export default function FollowersScreen() {
           ListEmptyComponent={
             <View style={styles.empty}>
               <ThemedText style={[styles.emptyText, { color: colors.textSecondary }]}>
-                {search.length > 0 ? t('followers.noResults') : t('followers.noFollowers')}
+                {search.length >= 2 
+                  ? isSearching ? 'Searching...' : 'No users found matching "' + search + '"'
+                  : t('followers.noFollowers')}
               </ThemedText>
             </View>
           }

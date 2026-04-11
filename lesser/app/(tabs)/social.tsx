@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet, SafeAreaView, View, TouchableOpacity, ScrollView,
-  Modal, Pressable, Animated,
+  Modal, Pressable, TextInput, ActivityIndicator, RefreshControl, Share, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
@@ -9,10 +9,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { FeedItem, FeedItemData } from '@/components/social/FeedItem';
+import { FeedItem } from '@/components/social/FeedItem';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Friend } from '@/services/social';
+import { Friend, FeedPost, fetchFollowedFeed, searchUsers, getRecommendedUsers } from '@/services/social';
 import { useAuth } from '@/hooks/useAuth';
+import { useSocial } from '@/hooks/useSocial';
 import { t } from '@/constants/i18n';
 
 // ─── Friend Card ─────────────────────────────────────────────────────────
@@ -57,7 +58,20 @@ function ShareProfileModal({
   const colors = Colors[theme];
   const [copied, setCopied] = useState(false);
 
-  const profileLink = `lesser://profile/${username}`;
+  const profileLink = `https://lesser.app/profile/${username}`;
+
+  const handleNativeShare = async () => {
+    try {
+      await Share.share({
+        message: `¡Únete a mi reto en Lesser! Sígueme para ver mi progreso reduciendo el tiempo de pantalla: ${profileLink}`,
+        url: profileLink, // iOS only
+        title: 'Compartir Perfil de Lesser',
+      });
+      onClose();
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
 
   const handleCopy = async () => {
     await Clipboard.setStringAsync(profileLink);
@@ -80,67 +94,51 @@ function ShareProfileModal({
           style={[styles.modalSheet, { backgroundColor: colors.card }]}
           onPress={e => e.stopPropagation()}
         >
-          {/* Handle bar */}
           <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
-
-          {/* Avatar */}
           <View style={[styles.shareAvatar, { backgroundColor: colors.accent + '22' }]}>
             <ThemedText style={[styles.shareAvatarText, { color: colors.accent }]}>
               {initial}
             </ThemedText>
           </View>
-
-          {/* Username */}
           <ThemedText style={[styles.shareUsername, { color: colors.text }]}>
             @{username}
           </ThemedText>
-
-          {/* Title & subtitle */}
           <ThemedText style={[styles.shareTitle, { color: colors.text }]}>
-            {t('social.sharePopupTitle')}
+            Comparte tu progreso
           </ThemedText>
           <ThemedText style={[styles.shareSubtitle, { color: colors.textSecondary }]}>
-            {t('social.sharePopupSubtitle')}
+            Invita a otros a seguir tu racha y motivarse juntos.
           </ThemedText>
 
-          {/* Link display */}
-          <View style={[styles.linkBox, { backgroundColor: colors.background, borderColor: colors.border }]}>
-            <IconSymbol name="link" size={16} color={colors.accent} />
+          <TouchableOpacity
+            style={[styles.copyBtn, { backgroundColor: colors.accent }]}
+            onPress={handleNativeShare}
+            activeOpacity={0.8}
+          >
+            <IconSymbol name="square.and.arrow.up" size={18} color="#FFF" />
+            <ThemedText style={styles.copyBtnText}>Enviar por WhatsApp / Más</ThemedText>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.linkBox, { backgroundColor: colors.background, borderColor: colors.border }]}
+            onPress={handleCopy}
+          >
+            <IconSymbol name="doc.on.doc" size={16} color={colors.textSecondary} />
             <ThemedText
               style={[styles.linkText, { color: colors.textSecondary }]}
               numberOfLines={1}
             >
-              {profileLink}
-            </ThemedText>
-          </View>
-
-          {/* Copy button */}
-          <TouchableOpacity
-            style={[
-              styles.copyBtn,
-              { backgroundColor: copied ? colors.success : colors.accent },
-            ]}
-            onPress={handleCopy}
-            activeOpacity={0.8}
-          >
-            <IconSymbol
-              name={copied ? 'checkmark.circle.fill' : 'doc.on.doc.fill'}
-              size={18}
-              color="#FFF"
-            />
-            <ThemedText style={styles.copyBtnText}>
-              {copied ? t('social.shareCopied') : t('social.sharePopupCopy')}
+              {copied ? '¡Copiado!' : profileLink}
             </ThemedText>
           </TouchableOpacity>
 
-          {/* Close */}
           <TouchableOpacity
             style={[styles.closeBtn, { borderColor: colors.border }]}
             onPress={onClose}
             activeOpacity={0.7}
           >
             <ThemedText style={[styles.closeBtnText, { color: colors.textSecondary }]}>
-              {t('social.sharePopupClose')}
+              Cerrar
             </ThemedText>
           </TouchableOpacity>
         </Pressable>
@@ -155,88 +153,209 @@ export default function SocialScreen() {
   const colors = Colors[theme];
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { username } = useAuth();
+  const { user } = useAuth();
+  const { following, isLoadingFollowers } = useSocial(user?.uid ?? null, user?.username ?? null);
 
+  const [feed, setFeed] = useState<FeedPost[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [showShare, setShowShare] = useState(false);
 
-  const mockFeed: FeedItemData[] = [
-    { id: '1', uid: 'u1', username: 'AlexRodriguez', days: 14, timestamp: '2h ago', message: '¡Poco a poco se nota la diferencia! Más concentración y mejor sueño.' },
-    { id: '2', uid: 'u2', username: 'Maria_99', days: 3, timestamp: '5h ago', photoUrl: 'https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=600&auto=format&fit=crop' },
-    { id: '3', uid: 'u3', username: 'Carlos_Dev', days: 30, timestamp: '1d ago', message: 'Un mes completo en Hardcore Mode. Al principio costó, pero merece la pena.' },
-  ];
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Friend[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [recommended, setRecommended] = useState<Friend[]>([]);
 
-  const mockFriends: Friend[] = [
-    { uid: 'u1', username: 'AlexRodriguez', streakDays: 14 },
-    { uid: 'u2', username: 'Maria_99', streakDays: 3 },
-    { uid: 'u3', username: 'Carlos_Dev', streakDays: 30 },
-    { uid: 'u4', username: 'Sara_M', streakDays: 7 },
-    { uid: 'u5', username: 'JuanP', streakDays: 2 },
-  ];
+  const loadFeed = useCallback(async () => {
+    if (!user) return;
+    try {
+      const posts = await fetchFollowedFeed(user.uid);
+      setFeed(posts);
+    } catch (e) {
+      console.error('Feed load failed:', e);
+    }
+  }, [user]);
 
-  const displayUsername = username ?? 'guest';
+  const loadRecommended = useCallback(async () => {
+    try {
+      const recs = await getRecommendedUsers();
+      setRecommended(recs);
+    } catch (e) {
+      console.error('Recommended load failed:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadFeed();
+    loadRecommended();
+  }, [loadFeed, loadRecommended]);
+
+  useEffect(() => {
+    if (searchQuery.trim().length > 0) {
+      setIsSearching(true);
+      const timer = setTimeout(async () => {
+        const results = await searchUsers(searchQuery);
+        setSearchResults(results);
+        setIsSearching(false);
+      }, 400);
+      return () => clearTimeout(timer);
+    } else {
+      setSearchResults([]);
+      setIsSearching(false);
+    }
+  }, [searchQuery]);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await loadFeed();
+    await loadRecommended();
+    setIsRefreshing(false);
+  };
+
+  const displayUsername = user?.username ?? 'guest';
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 72 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 80 }]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor={colors.accent} />
+        }
       >
         {/* Header */}
         <View style={styles.header}>
-          <ThemedText type="title">{t('social.title')}</ThemedText>
+          <ThemedText type="title">Comunidad</ThemedText>
           <TouchableOpacity
             style={[styles.shareButton, { backgroundColor: colors.card, borderColor: colors.border }]}
             onPress={() => setShowShare(true)}
             activeOpacity={0.7}
           >
-            <IconSymbol name="square.and.arrow.up" size={16} color={colors.accent} />
+            <IconSymbol name="person.badge.plus" size={16} color={colors.accent} />
             <ThemedText style={[styles.shareButtonText, { color: colors.accent }]}>
-              {t('social.shareProfile')}
+              Compartir
             </ThemedText>
           </TouchableOpacity>
         </View>
 
-        {/* Friends Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <ThemedText style={styles.sectionTitle}>{t('social.friends')}</ThemedText>
-            <TouchableOpacity onPress={() => router.push('/followers')}>
-              <ThemedText style={[styles.seeAll, { color: colors.accent }]}>
-                {t('social.followers')} →
-              </ThemedText>
+        {/* Search Bar */}
+        <View style={[styles.searchContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <IconSymbol name="magnifyingglass" size={18} color={colors.textSecondary} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.text }]}
+            placeholder="Buscar amigos por nombre..."
+            placeholderTextColor={colors.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <IconSymbol name="xmark.circle.fill" size={18} color={colors.textSecondary} />
             </TouchableOpacity>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.friendsRow}
-          >
-            {/* Add friend */}
-            <TouchableOpacity
-              style={[styles.addFriendCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-              onPress={() => router.push('/followers')}
-            >
-              <View style={[styles.addFriendIcon, { backgroundColor: colors.accent + '22' }]}>
-                <IconSymbol name="plus" size={22} color={colors.accent} />
-              </View>
-              <ThemedText style={[styles.addFriendText, { color: colors.textSecondary }]}>
-                {t('social.addFriend')}
-              </ThemedText>
-            </TouchableOpacity>
-            {mockFriends.map(f => <FriendCard key={f.uid} friend={f} />)}
-          </ScrollView>
+          )}
         </View>
 
-        {/* Feed */}
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>{t('social.feed')}</ThemedText>
-          <View>
-            {mockFeed.map(item => <FeedItem key={item.id} data={item} />)}
+        {/* Search Results / Recommended */}
+        {searchQuery.length > 0 ? (
+          <View style={styles.resultsContainer}>
+            <ThemedText style={styles.sectionTitle}>Resultados</ThemedText>
+            {isSearching ? (
+              <ActivityIndicator color={colors.accent} style={{ marginTop: 20 }} />
+            ) : searchResults.length === 0 ? (
+              <ThemedText style={{ color: colors.textSecondary, marginTop: 10 }}>No se encontraron usuarios.</ThemedText>
+            ) : (
+              <View style={styles.resultsList}>
+                {searchResults.map(f => (
+                  <TouchableOpacity
+                    key={f.uid}
+                    style={[styles.resultItem, { borderBottomColor: colors.border }]}
+                    onPress={() => {
+                        setSearchQuery('');
+                        router.push(`/friend/${f.uid}`);
+                    }}
+                  >
+                    <View style={[styles.friendAvatarSmall, { backgroundColor: colors.accent + '22' }]}>
+                      <ThemedText style={{ color: colors.accent, fontWeight: '700' }}>{f.username[0].toUpperCase()}</ThemedText>
+                    </View>
+                    <ThemedText style={{ flex: 1, fontWeight: '600' }}>@{f.username}</ThemedText>
+                    <View style={styles.friendStreak}>
+                      <ThemedText style={{ fontSize: 12 }}>🔥 {f.streakDays}d</ThemedText>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
-        </View>
+        ) : (
+          <>
+            {/* Friends Section */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <ThemedText style={styles.sectionTitle}>Siguiendo</ThemedText>
+                <ThemedText style={[styles.countBadge, { backgroundColor: colors.accent + '22', color: colors.accent }]}>
+                  {following.length}
+                </ThemedText>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.friendsRow}
+              >
+                {isLoadingFollowers ? (
+                  <View style={{ width: 80, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator color={colors.accent} />
+                  </View>
+                ) : following.length === 0 ? (
+                  <View style={styles.emptyFriends}>
+                    <ThemedText style={[styles.emptyFriendsText, { color: colors.textSecondary }]}>
+                      No sigues a nadie aún.
+                    </ThemedText>
+                  </View>
+                ) : (
+                  following.map(f => <FriendCard key={f.uid} friend={f} />)
+                )}
+              </ScrollView>
+            </View>
+
+            {/* Recommended Users (Discovery) */}
+            {recommended.length > 0 && (
+                 <View style={styles.section}>
+                    <ThemedText style={styles.sectionTitle}>Recomendados</ThemedText>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.friendsRow}
+                    >
+                        {recommended.map(f => (
+                            <FriendCard key={f.uid} friend={f} />
+                        ))}
+                    </ScrollView>
+                 </View>
+            )}
+
+            {/* Feed */}
+            <View style={styles.section}>
+              <ThemedText style={styles.sectionTitle}>Logros de amigos</ThemedText>
+              {feed.length === 0 ? (
+                <View style={styles.emptyFeed}>
+                  <View style={[styles.emptyIcon, { backgroundColor: colors.card }]}>
+                    <IconSymbol name="star.fill" size={32} color={colors.textSecondary + '66'} />
+                  </View>
+                  <ThemedText style={{ color: colors.textSecondary, marginTop: 16, textAlign: 'center', maxWidth: 200 }}>
+                    Sigue a tus amigos para ver sus logros diarios aquí.
+                  </ThemedText>
+                </View>
+              ) : (
+                <View style={{ gap: 12, marginTop: 4 }}>
+                  {feed.map(item => <FeedItem key={item.id} data={item as any} />)}
+                </View>
+              )}
+            </View>
+          </>
+        )}
       </ScrollView>
 
-      {/* Share Profile Pop-up */}
       <ShareProfileModal
         visible={showShare}
         onClose={() => setShowShare(false)}
@@ -251,7 +370,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingTop: 60,
-    gap: 24,
+    gap: 28,
   },
   header: {
     flexDirection: 'row',
@@ -262,152 +381,175 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 13,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 22,
     borderWidth: 1,
   },
-  shareButtonText: { fontSize: 13, fontWeight: '600' },
-  section: { gap: 12 },
+  shareButtonText: { fontSize: 13, fontWeight: '700' },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+  },
+  resultsContainer: {
+    gap: 12,
+    minHeight: 200,
+  },
+  resultsList: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  resultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 12,
+  },
+  friendAvatarSmall: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  section: { gap: 16 },
   sectionHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
   },
   sectionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    letterSpacing: 1.2,
+    opacity: 0.6,
   },
-  seeAll: { fontSize: 13, fontWeight: '600' },
-  friendsRow: { gap: 10 },
+  countBadge: {
+    fontSize: 11,
+    fontWeight: '700',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  friendsRow: { gap: 12 },
   friendCard: {
     alignItems: 'center',
-    padding: 12,
-    borderRadius: 16,
+    padding: 14,
+    borderRadius: 20,
     borderWidth: 1,
-    width: 80,
-    gap: 6,
+    width: 90,
+    gap: 8,
   },
   friendAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  friendInitial: { fontSize: 20, fontWeight: '700' },
-  friendName: { fontSize: 11, fontWeight: '600', textAlign: 'center' },
+  friendInitial: { fontSize: 22, fontWeight: '800' },
+  friendName: { fontSize: 12, fontWeight: '700', textAlign: 'center' },
   friendStreak: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   friendStreakEmoji: { fontSize: 10 },
-  friendStreakDays: { fontSize: 11 },
-  addFriendCard: {
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    width: 80,
-    gap: 6,
+  friendStreakDays: { fontSize: 12, fontWeight: '600' },
+  emptyFriends: {
+    paddingVertical: 20,
+    paddingHorizontal: 10,
   },
-  addFriendIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  emptyFriendsText: { fontSize: 14, fontStyle: 'italic' },
+  emptyFeed: {
+    paddingVertical: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  addFriendText: { fontSize: 11, fontWeight: '600' },
-  // ── Modal ──────────────────────────────────────────────────────────────────
+  // ── Share Modal Styles ─────────────────────────────────────────────────────
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'flex-end',
   },
   modalSheet: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 24,
-    paddingBottom: 40,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingHorizontal: 28,
+    paddingBottom: Platform.OS === 'ios' ? 44 : 32,
     paddingTop: 12,
     alignItems: 'center',
-    gap: 12,
+    gap: 16,
   },
   modalHandle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    marginBottom: 12,
+    width: 36,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#00000020',
+    marginBottom: 8,
   },
   shareAvatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 4,
+    marginTop: 8,
   },
-  shareAvatarText: {
-    fontSize: 32,
-    fontWeight: '700',
-  },
-  shareUsername: {
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  shareTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  shareSubtitle: {
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 4,
-  },
-  linkBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 14,
-    borderWidth: 1,
-    alignSelf: 'stretch',
-    marginTop: 4,
-  },
-  linkText: {
-    flex: 1,
-    fontSize: 13,
-    fontFamily: 'monospace',
-  },
+  shareAvatarText: { fontSize: 36, fontWeight: '800' },
+  shareUsername: { fontSize: 18, fontWeight: '700' },
+  shareTitle: { fontSize: 22, fontWeight: '800', textAlign: 'center' },
+  shareSubtitle: { fontSize: 15, textAlign: 'center', lineHeight: 22, opacity: 0.7 },
   copyBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingVertical: 16,
-    borderRadius: 16,
+    gap: 10,
+    paddingVertical: 18,
+    borderRadius: 20,
     alignSelf: 'stretch',
     justifyContent: 'center',
-    marginTop: 4,
+    marginTop: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 4,
   },
-  copyBtnText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  closeBtn: {
+  copyBtnText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
+  linkBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 16,
     borderWidth: 1,
     alignSelf: 'stretch',
+  },
+  linkText: { flex: 1, fontSize: 13, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
+  closeBtn: {
+    marginTop: 4,
+    paddingVertical: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignSelf: 'stretch',
     alignItems: 'center',
   },
-  closeBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
+  closeBtnText: { fontSize: 15, fontWeight: '700' },
 });
+
