@@ -30,6 +30,7 @@ export function AccountSection() {
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
   
   const [internalLoading, setInternalLoading] = useState(false);
   const [internalError, setInternalError] = useState<string | null>(null);
@@ -46,6 +47,7 @@ export function AccountSection() {
     setCurrentPass('');
     setNewPass('');
     setDeletePassword('');
+    setDeleteConfirmationText('');
   };
 
   const handleUpdateUsername = async () => {
@@ -99,6 +101,8 @@ export function AccountSection() {
       setInternalError(result.error ?? t('settings.deleteAccountError'));
     }
   };
+
+  const isDeleteButtonEnabled = deleteConfirmationText === 'ELIMINAR MI CUENTA' && deletePassword.length > 0;
 
   const confirmDelete = () => {
     Alert.alert(
@@ -155,6 +159,14 @@ export function AccountSection() {
               <ThemedText style={styles.actionText}>{t('settings.changePassword')}</ThemedText>
               <IconSymbol name="chevron.right" size={18} color={colors.icon} />
             </TouchableOpacity>
+
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <TouchableOpacity style={styles.actionRow} onPress={confirmDelete}>
+              <IconSymbol name="trash.fill" size={20} color={colors.error} />
+              <ThemedText style={[styles.actionText, { color: colors.error }]}>
+                {t('settings.deleteAccount')}
+              </ThemedText>
+            </TouchableOpacity>
           </>
         )}
 
@@ -172,17 +184,7 @@ export function AccountSection() {
           </TouchableOpacity>
         )}
 
-        {isLoggedIn && (
-          <>
-            <View style={[styles.divider, { backgroundColor: colors.border }]} />
-            <TouchableOpacity style={styles.actionRow} onPress={confirmDelete}>
-              <IconSymbol name="trash.fill" size={20} color={colors.error} />
-              <ThemedText style={[styles.actionText, { color: colors.error }]}>
-                {t('settings.deleteAccount')}
-              </ThemedText>
-            </TouchableOpacity>
-          </>
-        )}
+
       </View>
 
       {/* ─── Change Username Modal ─────────────────────────────────────── */}
@@ -245,6 +247,7 @@ export function AccountSection() {
           <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <ThemedText style={styles.modalTitle}>{t('settings.deleteAccountTitle')}</ThemedText>
             <ThemedText style={{ textAlign: 'center', opacity: 0.7 }}>{t('settings.deleteAccountPasswordHint')}</ThemedText>
+            
             <TextInput
               style={[styles.passwordInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
               placeholder="Contraseña"
@@ -252,10 +255,28 @@ export function AccountSection() {
               value={deletePassword}
               onChangeText={setDeletePassword}
             />
+
+            <ThemedText style={{ textAlign: 'center', fontSize: 13, marginTop: 8 }}>
+              Escribe <ThemedText style={{ fontWeight: 'bold' }}>ELIMINAR MI CUENTA</ThemedText> para confirmar:
+            </ThemedText>
+
+            <TextInput
+              style={[styles.passwordInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+              placeholder="ELIMINAR MI CUENTA"
+              value={deleteConfirmationText}
+              onChangeText={setDeleteConfirmationText}
+              autoCapitalize="characters"
+            />
+
             {internalError && <ThemedText style={[styles.errorText, { color: colors.error }]}>{internalError}</ThemedText>}
+            
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.modalBtn} onPress={() => setShowDeleteModal(false)}><ThemedText>Cancelar</ThemedText></TouchableOpacity>
-              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: colors.error }]} onPress={handleDeleteAccount}>
+              <TouchableOpacity 
+                style={[styles.modalBtn, { backgroundColor: isDeleteButtonEnabled ? colors.error : colors.border, opacity: isDeleteButtonEnabled ? 1 : 0.5 }]} 
+                onPress={handleDeleteAccount}
+                disabled={!isDeleteButtonEnabled}
+              >
                 {internalLoading ? <ActivityIndicator color="#FFF" /> : <ThemedText style={{ color: '#FFF' }}>Eliminar</ThemedText>}
               </TouchableOpacity>
             </View>

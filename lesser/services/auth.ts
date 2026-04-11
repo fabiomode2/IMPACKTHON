@@ -30,6 +30,7 @@ import {
   serverTimestamp,
 } from 'firebase/database';
 import { auth, rtdb } from './firebase';
+import { performFullUserCleanup } from './userCleanup';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -257,9 +258,13 @@ export async function deleteAccount(
 
     const uid = user.uid;
     const profile = await readProfile(uid);
-    const lower = profile.username.toLowerCase();
+    const username = profile.username;
+    const lower = username.toLowerCase();
 
-    // Cleanup RTDB
+    // Cleanup deep references (social, feed, Firestore, presence)
+    await performFullUserCleanup(uid, username);
+
+    // Cleanup core RTDB nodes
     try {
       await remove(ref(rtdb, `users/${uid}`));
       await remove(ref(rtdb, `usernames/${lower}`));
