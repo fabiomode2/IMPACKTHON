@@ -18,6 +18,11 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
+      "permissions": [
+        "FOREGROUND_SERVICE",
+        "SYSTEM_ALERT_WINDOW",
+        "PACKAGE_USAGE_STATS"
+      ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.fabiomode2.lesser"
@@ -39,7 +44,8 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-background-task"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -48,8 +54,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "6c5abc1c-4fe2-43a1-a618-6b89b94ba824"
+        "projectId": "38a6dd95-316a-4b1c-b639-7b9eb4408572"
       }
-    }
+    },
+    "owner": "bimbinho"
   }
 }

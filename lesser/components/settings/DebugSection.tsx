@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Switch, Platform, Modal, Pressable } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { silentNudgeService } from '@/services/silentNudgeService';
 
+import React, { useState } from 'react';
+import ReactNative, { Modal, Platform, Pressable, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
+
+
+const {BackgroundFabModule} = ReactNative.NativeModules;
 /**
  * components/settings/DebugSection.tsx
  *
@@ -80,8 +83,54 @@ export function DebugSection() {
               )}
             </View>
 
+            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={styles.row}>
+                <View style={styles.info}>
+                  <ThemedText style={styles.title}>Background App Module</ThemedText>
+                  <ThemedText style={[styles.desc, { color: colors.textSecondary }]}>
+                    Instantiate the background FAB native module.
+                  </ThemedText>
+                </View>
+                <TouchableOpacity
+                  style={[{ backgroundColor: colors.accent, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12 }]}
+                  onPress={() => {
+                    console.log("Calling BackgroundFabModule...");
+                    console.log("1. Intentando llamar al módulo...");
+                    if (BackgroundFabModule) {
+                      console.log("2. El módulo existe, llamando a startService...");
+                      BackgroundFabModule.startService();
+                    } else {
+                      console.error("2. ERROR: El módulo es undefined. ¿Hiciste npx expo run:android?");
+                    }
+                    ReactNative.Alert.alert("Native Module Called!", "Check your Android Logcat for the message.");
+                  }}
+                >
+                  <ThemedText style={{ color: '#FFF', fontWeight: 'bold' }}>Create</ThemedText>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[{ backgroundColor: colors.accent, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, marginTop: 8 }]}
+                  onPress={async () => {
+                    if (BackgroundFabModule && BackgroundFabModule.getForegroundApp) {
+                      try {
+                        const appName = await BackgroundFabModule.getForegroundApp();
+                        ReactNative.Alert.alert("App en primer plano", appName);
+                      } catch (e: any) {
+                        ReactNative.Alert.alert("Error", e.message);
+                      }
+                    } else {
+                      ReactNative.Alert.alert("Error", "El módulo o el método no están disponibles. Reinstala la app.");
+                    }
+                  }}
+                >
+                  <ThemedText style={{ color: '#FFF', fontWeight: 'bold' }}>Obtener App Actual</ThemedText>
+                </TouchableOpacity>
+              </View>
+              
+            </View>
+
             <TouchableOpacity 
-              style={[styles.closeButton, { backgroundColor: colors.accent }]}
+              style={[styles.closeButton, { backgroundColor: colors.accent, marginTop: 12 }]}
               onPress={() => setModalVisible(false)}
             >
               <ThemedText style={styles.closeButtonText}>Done</ThemedText>
