@@ -43,6 +43,8 @@ export default function HomeScreen() {
   const usageHoursWeek = stats?.hoursWeek ?? 0;
   const usageHoursMonth = stats?.hoursMonth ?? 0;
   const usageHours6Months = stats?.hours6Months ?? 0;
+  const topPercentage = stats?.topPercentage ?? 50;
+
 
   const [hasUsagePermission, setHasUsagePermission] = useState<boolean>(true);
   const [realUsageHours24h, setRealUsageHours24h] = useState<number>(usageHours24h);
@@ -56,10 +58,9 @@ export default function HomeScreen() {
         const permitted = await AppUsageModule.checkPermission();
         setHasUsagePermission(permitted);
         if (permitted) {
-          const stats = await AppUsageModule.getDailyUsageStats();
-          if (stats && Array.isArray(stats)) {
-            // Sum all usageTime (which is in minutes) and convert to hours
-            const totalMinutes = stats.reduce((acc: number, app: any) => acc + (app.usageTime || 0), 0);
+          const usageStats = await AppUsageModule.getDailyUsageStats();
+          if (usageStats && Array.isArray(usageStats)) {
+            const totalMinutes = usageStats.reduce((acc: number, app: any) => acc + (app.usageTime || 0), 0);
             setRealUsageHours24h(totalMinutes / 60);
           }
         }
@@ -79,13 +80,12 @@ export default function HomeScreen() {
     };
   }, []);
 
-  const { user } = useAuth();
-
   useEffect(() => {
     if (user && stats) {
       checkAndPostMilestones(user.uid, user.username, streakDays, topPercentage);
     }
   }, [user, streakDays, topPercentage, stats]);
+
 
   const goalHours = 4;
   const savedToday = Math.max(0, goalHours - usageHours24h);
@@ -93,10 +93,8 @@ export default function HomeScreen() {
   const savedMonth = Math.max(0, (goalHours * 30) - usageHoursMonth);
   const savingsText = getSavingsText(savedWeek);
 
-  const calendarData = useMemo(() => Array.from({ length: 35 }, (_, i) => ({
-    date: new Date(Date.now() - (34 - i) * 24 * 60 * 60 * 1000),
-    usageMinutes: Math.floor(Math.random() * 140),
-  })), []);
+  const calendarData = stats?.calendarData || [];
+
 
   const mostUsedApps = [
     { name: 'Instagram', usageTime: 120, icon: 'camera' },
