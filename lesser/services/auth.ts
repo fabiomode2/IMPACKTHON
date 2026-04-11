@@ -30,6 +30,9 @@ import {
   writeBatch,
   collection,
   getDocs,
+  query,
+  where,
+  limit,
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
 
@@ -76,17 +79,38 @@ async function readProfile(uid: string, usernameHint?: string): Promise<UserProf
 // ─── Auth operations ──────────────────────────────────────────────────────────
 
 /**
+ * Check if a username is already taken in Firestore.
+ */
+export async function isUsernameTaken(username: string): Promise<boolean> {
+  const q = query(
+    collection(db, 'users'),
+    where('username', '==', username.trim()),
+    limit(1)
+  );
+  const snap = await getDocs(q);
+  return !snap.empty;
+}
+
+/**
  * Register a new user.
  * Creates Firebase Auth account + Firestore /users/{uid} document.
  */
 export async function registerUser(username: string, password: string): Promise<AuthResult> {
   try {
-    const email: string = usernameToEmail(username);
+    const trimmed = username.trim();
+    // 1. Explicit check for username
+    const taken = await isUsernameTaken(trimmed);
+    if (taken) {
+      return { success: false, error: 'Este nombre de usuario ya está en uso.' };
+    }
+
+    const email: string = usernameToEmail(trimmed);
     const credential: UserCredential = await createUserWithEmailAndPassword(auth, email, password);
     const { uid } = credential.user;
 
     await setDoc(doc(db, 'users', uid), {
-      username,
+      username: trimmed,
+      username_lowercase: trimmed.toLowerCase(),
       email,
       mode: 'mid',
       streakDays: 0,
@@ -95,7 +119,7 @@ export async function registerUser(username: string, password: string): Promise<
 
     return {
       success: true,
-      user: { uid, username, email, mode: 'mid', streakDays: 0, createdAt: new Date() },
+      user: { uid, username: trimmed, email, mode: 'mid', streakDays: 0, createdAt: new Date() },
     };
   } catch (err: unknown) {
     return { success: false, error: friendlyAuthError(err) };
@@ -124,14 +148,30 @@ export async function logoutUser(): Promise<void> {
 }
 
 /**
- * Update the display username stored in Firestore.
- * Does NOT change the Firebase Auth email (which is internal).
+ * Generic function to update any user profile field.
  */
-export async function updateUsername(uid: string, newUsername: string): Promise<AuthResult> {
+export async function updateUserProfile(
+    uid: string, 
+    data: Partial<UserProfile>
+): Promise<AuthResult> {
   try {
-    await updateDoc(doc(db, 'users', uid), { username: newUsername });
+    // If username is changing, check for collisions
+    if (data.username) {
+        const taken = await isUsernameTaken(data.username);
+        if (taken) {
+            return { success: false, error: 'Este nombre de usuario ya está en uso.' };
+        }
+    }
+
+    const updateMap: any = { ...data };
+    if (data.username) {
+        updateMap.username_lowercase = data.username.toLowerCase();
+    }
+    if (data.createdAt) delete updateMap.createdAt; // Don't update creation date
+
+    await updateDoc(doc(db, 'users', uid), updateMap);
     const profile = await readProfile(uid);
-    return { success: true, user: { ...profile, username: newUsername } };
+    return { success: true, user: profile };
   } catch (err: unknown) {
     return { success: false, error: friendlyAuthError(err) };
   }
@@ -146,7 +186,7 @@ export async function changePassword(
   newPassword: string,
 ): Promise<{ success: boolean; error?: string }> {
   const user = auth.currentUser;
-  if (!user || !user.email) return { success: false, error: 'Not authenticated.' };
+  if (!user || !user.email) return { success: false, error: 'No autenticado.' };
 
   try {
     const credential = EmailAuthProvider.credential(user.email, currentPassword);
@@ -160,30 +200,18 @@ export async function changePassword(
 
 /**
  * Permanently delete the user's account.
- *
- * Steps:
- * 1. Re-authenticate (Firebase requires this for destructive operations)
- * 2. Delete all Firestore data (user doc + subcollections)
- * 3. Delete Firebase Auth account
- *
- * Note: followers/following subcollection cleanup is handled by
- * the `onUserDeleted` Cloud Function to avoid client-side race conditions.
  */
 export async function deleteAccount(
   currentPassword: string,
 ): Promise<{ success: boolean; error?: string }> {
   const user = auth.currentUser;
-  if (!user || !user.email) return { success: false, error: 'Not authenticated.' };
+  if (!user || !user.email) return { success: false, error: 'No autenticado.' };
 
   try {
-    // 1. Re-authenticate
     const credential = EmailAuthProvider.credential(user.email, currentPassword);
     await reauthenticateWithCredential(user, credential);
 
-    // 2. Delete Firestore data (subcollections cleaned by Cloud Function)
     await deleteDoc(doc(db, 'users', user.uid));
-
-    // 3. Delete Auth account (triggers onUserDeleted Cloud Function)
     await deleteUser(user);
 
     return { success: true };
@@ -195,16 +223,18 @@ export async function deleteAccount(
 // ─── Error mapping ────────────────────────────────────────────────────────────
 
 function friendlyAuthError(err: unknown): string {
-  if (!(err instanceof Error)) return 'An unknown error occurred.';
+  if (!(err instanceof Error)) return 'Error desconocido.';
   const code = (err as { code?: string }).code ?? '';
   switch (code) {
-    case 'auth/email-already-in-use':    return 'This username is already taken.';
-    case 'auth/user-not-found':          return 'Username not found.';
-    case 'auth/wrong-password':          return 'Incorrect password.';
-    case 'auth/weak-password':           return 'Password must be at least 6 characters.';
-    case 'auth/too-many-requests':       return 'Too many attempts. Try again later.';
-    case 'auth/network-request-failed':  return 'Network error. Check your connection.';
-    case 'auth/requires-recent-login':   return 'Please log out and log in again before this action.';
-    default: return err.message || 'Something went wrong.';
+    case 'auth/email-already-in-use':    return 'Este nombre de usuario ya está ocupado.';
+    case 'auth/user-not-found':          return 'Usuario no encontrado.';
+    case 'auth/wrong-password':          return 'Contraseña incorrecta.';
+    case 'auth/invalid-credential':      return 'Credenciales inválidas.';
+    case 'auth/weak-password':           return 'La contraseña debe tener al menos 6 caracteres.';
+    case 'auth/too-many-requests':       return 'Demasiados intentos. Prueba más tarde.';
+    case 'auth/network-request-failed':  return 'Error de red. Revisa tu conexión.';
+    case 'auth/requires-recent-login':   return 'Cierra sesión e inicia de nuevo antes de esta acción.';
+    case 'auth/invalid-email':           return 'Nombre de usuario inválido.';
+    default: return err.message || 'Algo salió mal.';
   }
 }

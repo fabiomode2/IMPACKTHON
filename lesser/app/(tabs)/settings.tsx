@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AccountSection } from '@/components/settings/AccountSection';
 import { ModeSelector } from '@/components/settings/ModeSelector';
+import { WellbeingSection } from '@/components/settings/WellbeingSection';
 import { WhitelistSection } from '@/components/settings/WhitelistSection';
 import { DebugSection } from '@/components/settings/DebugSection';
 import { ThemedText } from '@/components/themed-text';
@@ -25,6 +26,7 @@ export default function SettingsScreen() {
 
         <AccountSection />
         <ModeSelector />
+        <WellbeingSection />
         <WhitelistSection />
         <DebugSection />
 

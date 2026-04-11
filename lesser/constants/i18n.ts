@@ -239,6 +239,15 @@ const en = {
     usageThresholdMinutes: '{{minutes}} minutes',
     usageThresholdInfo: 'Starts nudging after this many minutes of foreground app use.',
   },
+  wellbeing: {
+    title: 'Digital Wellbeing',
+    vpnTitle: 'Network Throttling',
+    vpnSubtitle: 'Slows down blacklisted apps to discourage over-use. The delay increases progressively as you use the apps.',
+    enableVpn: 'Enable Slow Mode 🐢',
+    disableVpn: 'Disable Slow Mode',
+    currentDelay: 'Current delay: {{ms}}ms',
+    delayDescription: 'The artificial lag currently applied to network requests.',
+  },
 };
 
 const es: Strings = {
@@ -335,6 +344,15 @@ const es: Strings = {
     usageThreshold: 'Límite de Uso',
     usageThresholdMinutes: '{{minutes}} minutos',
     usageThresholdInfo: 'El empujón comienza tras estos minutos de uso.',
+  },
+  wellbeing: {
+    title: 'Bienestar Digital',
+    vpnTitle: 'Ralentización de Red',
+    vpnSubtitle: 'Ralentiza las apps en la lista negra para desincentivar el uso excesivo. El retraso aumenta progresivamente con el uso.',
+    enableVpn: 'Activar Modo Lento 🐢',
+    disableVpn: 'Desactivar Modo Lento',
+    currentDelay: 'Retraso actual: {{ms}}ms',
+    delayDescription: 'El lag artificial aplicado actualmente a las peticiones de red.',
   },
 };
 

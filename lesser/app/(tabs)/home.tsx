@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, ScrollView, SafeAreaView, View, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,6 +14,8 @@ import { TopUsersBadge } from '@/components/home/TopUsersBadge';
 import { GithubCalendar } from '@/components/home/GithubCalendar';
 import { MostUsedApps } from '@/components/home/MostUsedApps';
 import { ThemedText } from '@/components/themed-text';
+import { useAppTimeTracker } from '@/hooks/useAppTimeTracker';
+import { checkAndPostMilestones } from '@/services/social';
 
 function getSavingsText(savedHours: number): string {
   if (savedHours >= 12) return t('home.comparisons.show');
@@ -30,6 +32,7 @@ export default function HomeScreen() {
   const { mode, username } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { formattedTime, activeTimeHours } = useAppTimeTracker();
 
   // Mock Data — replace with usageService.fetchUsageStats(user.uid)
   const streakDays = 15;
@@ -38,6 +41,14 @@ export default function HomeScreen() {
   const usageHoursMonth = 88.4;
   const usageHours6Months = 510.2;
   const topPercentage = 15;
+
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      checkAndPostMilestones(user.uid, user.username, streakDays, topPercentage);
+    }
+  }, [user, streakDays, topPercentage]);
 
   const goalHours = 4;
   const savedToday = Math.max(0, goalHours - usageHours24h);
@@ -141,6 +152,18 @@ export default function HomeScreen() {
 
         {/* Most used apps */}
         <MostUsedApps apps={mostUsedApps} />
+
+        {/* Live Active Timer */}
+        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border, marginTop: 4, alignItems: 'center' }]}>
+          <IconSymbol name="timer" size={24} color={colors.accent} style={{ marginBottom: 4 }} />
+          <ThemedText style={{ fontSize: 14, color: colors.textSecondary }}>Live App Active Time</ThemedText>
+          <ThemedText style={{ fontSize: 34, fontWeight: '800', color: colors.text, marginVertical: 4 }}>
+            {formattedTime}
+          </ThemedText>
+          <ThemedText style={{ fontSize: 12, color: colors.textSecondary }}>
+            {activeTimeHours.toFixed(4)}h / 6.0000h max
+          </ThemedText>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
