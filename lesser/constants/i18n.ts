@@ -138,6 +138,9 @@ const en = {
       got: 'watch a Game of Thrones season 🐉',
       show: 'finish a whole Netflix show 📺',
     },
+    usagePermissionTitle: 'App Usage Access Required',
+    usagePermissionDesc: 'To display your real usage statistics, Lesser needs permission to read Android usage history.',
+    grantPermissionBtn: 'Grant Permission',
   },
 
   // ── Social ──────────────────────────────────────────────
@@ -289,6 +292,9 @@ const es: Strings = {
     consistencyMap: 'Mapa de consistencia', moreUsage: 'Más uso', lessUsage: 'Menos uso',
     mostUsedApps: 'Apps más usadas', usageTime: '{{min}} min',
     comparisons: { nap: 'echar una siesta 😴', film: 'ver un cortometraje 🎬', book: 'leer 50 páginas 📚', movie: 'ver una película entera 🍿', got: 'ver una temporada de Juego de Tronos 🐉', show: 'terminar una serie de Netflix 📺' },
+    usagePermissionTitle: 'Permiso de uso requerido',
+    usagePermissionDesc: 'Para mostrar tus estadísticas reales de cada app, Lesser necesita permiso para leer el historial de uso de Android.',
+    grantPermissionBtn: 'Conceder permiso',
   },
   social: {
     title: 'Social', shareProfile: 'Compartir perfil', shareCopied: '¡Enlace de perfil copiado!',

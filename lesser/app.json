@@ -48,8 +48,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "6c5abc1c-4fe2-43a1-a618-6b89b94ba824"
+        "projectId": "38a6dd95-316a-4b1c-b639-7b9eb4408572"
       }
-    }
+    },
+    "owner": "bimbinho"
   }
 }

@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, ScrollView, SafeAreaView, View, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState, useMemo } from 'react';
+import { StyleSheet, ScrollView, SafeAreaView, View, TouchableOpacity, NativeModules, AppState, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/hooks/useAuth';
@@ -42,6 +42,41 @@ export default function HomeScreen() {
   const usageHours6Months = 510.2;
   const topPercentage = 15;
 
+  const [hasUsagePermission, setHasUsagePermission] = useState<boolean>(true);
+  const [realUsageHours24h, setRealUsageHours24h] = useState<number>(usageHours24h);
+
+  useEffect(() => {
+    const { AppUsageModule } = NativeModules;
+
+    async function fetchStats() {
+      if (!AppUsageModule) return;
+      try {
+        const permitted = await AppUsageModule.checkPermission();
+        setHasUsagePermission(permitted);
+        if (permitted) {
+          const stats = await AppUsageModule.getDailyUsageStats();
+          if (stats && Array.isArray(stats)) {
+            // Sum all usageTime (which is in minutes) and convert to hours
+            const totalMinutes = stats.reduce((acc: number, app: any) => acc + (app.usageTime || 0), 0);
+            setRealUsageHours24h(totalMinutes / 60);
+          }
+        }
+      } catch (e) {
+        console.error("Error fetching usage stats", e);
+      }
+    }
+
+    fetchStats();
+
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (nextAppState === 'active') fetchStats();
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
   const { user } = useAuth();
 
   useEffect(() => {
@@ -56,10 +91,10 @@ export default function HomeScreen() {
   const savedMonth = 42.1;
   const savingsText = getSavingsText(savedWeek);
 
-  const calendarData = Array.from({ length: 35 }, (_, i) => ({
+  const calendarData = useMemo(() => Array.from({ length: 35 }, (_, i) => ({
     date: new Date(Date.now() - (34 - i) * 24 * 60 * 60 * 1000),
     usageMinutes: Math.floor(Math.random() * 140),
-  }));
+  })), []);
 
   const mostUsedApps = [
     { name: 'Instagram', usageTime: 120, icon: 'camera' },
@@ -99,9 +134,25 @@ export default function HomeScreen() {
         {/* Streak */}
         <StreakCounter days={streakDays} />
 
+        {/* Permission Banner */}
+        {!hasUsagePermission && (
+          <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border, marginBottom: 0 }]}>
+            <ThemedText style={{ fontSize: 16, fontWeight: 'bold' }}>{t('home.usagePermissionTitle')}</ThemedText>
+            <ThemedText style={{ color: colors.textSecondary, marginVertical: 8 }}>
+              {t('home.usagePermissionDesc')}
+            </ThemedText>
+            <TouchableOpacity
+              style={[styles.statsBtn, { backgroundColor: colors.accent, alignSelf: 'flex-start', marginTop: 8 }]}
+              onPress={() => NativeModules.AppUsageModule?.requestPermission()}
+            >
+              <ThemedText style={{ color: '#fff', fontWeight: 'bold' }}>{t('home.grantPermissionBtn')}</ThemedText>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Usage hours — cycling taps, no navigation */}
         <UsageHoursCounter
-          hours24h={usageHours24h}
+          hours24h={hasUsagePermission ? realUsageHours24h : usageHours24h}
           hoursWeek={usageHoursWeek}
           hoursMonth={usageHoursMonth}
           hours6Months={usageHours6Months}
