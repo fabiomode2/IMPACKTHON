@@ -1,27 +1,44 @@
 {
   "rules": {
     "users": {
+      ".read": "auth != null",
+      ".indexOn": ["username_lowercase", "streakDays"],
       "$uid": {
-        // Any authenticated user can read profiles (social features)
-        ".read": "auth != null",
-        // Only the owner can write their profile and sub-nodes (settings, etc.)
-        ".write": "auth != null && auth.uid === $uid"
+        // Main profile write remains owner-only
+        ".write": "auth != null && auth.uid === $uid",
+        
+        "followers": {
+          "$followerUid": {
+            // A user can be added to followers by themselves (following action) 
+            // or removed by themselves (unfollow/delete account action)
+            ".write": "auth != null && (auth.uid === $uid || auth.uid === $followerUid)"
+          }
+        },
+        "following": {
+          "$followedUid": {
+            // A user can update their own following list, 
+            // or a deleted user can remove themselves from others' following lists
+            ".write": "auth != null && (auth.uid === $uid || auth.uid === $followedUid)"
+          }
+        }
       }
     },
     "usernames": {
-      // PROBABLE FIX: Registration needs to check if a name is taken BEFORE login occurs.
-      // Changing .read to true allows unauthenticated users to check username availability.
       ".read": true,
       "$username": {
-        // Allows creating a new username entry or updating your own
-        // (prevents overwriting someone else's username entry)
         ".write": "auth != null && (!data.exists() || data.val() === auth.uid)"
       }
     },
     "feedPosts": {
-      // Global feed is public for all logged in users
       ".read": "auth != null",
-      ".write": "auth != null"
+      // Allow creating posts, and modifying/deleting only your own posts
+      ".write": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid || newData.child('uid').val() === auth.uid)"
+    },
+    "status": {
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid === $uid"
+      }
     }
   }
 }

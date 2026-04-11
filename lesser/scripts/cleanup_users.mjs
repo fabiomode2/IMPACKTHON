@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, deleteDoc, doc, writeBatch } from 'firebase/firestore';
 import { getDatabase, ref, remove } from 'firebase/database';
 
 const firebaseConfig = {
@@ -13,32 +13,48 @@ const db = getFirestore(app);
 const rtdb = getDatabase(app);
 
 async function cleanup() {
-  console.log("Starting cleanup...");
+  console.log("🚀 Starting Full Database Wipe...");
 
-  // 1. Cleanup Firestore 'users'
+  // 1. Cleanup Firestore 'users' and their subcollections
   try {
     const firestoreUsers = await getDocs(collection(db, 'users'));
-    console.log(`Deleting ${firestoreUsers.docs.length} users from Firestore...`);
+    console.log(`🧹 Deleting ${firestoreUsers.docs.length} users and their sessions from Firestore...`);
+    
     for (const d of firestoreUsers.docs) {
-      await deleteDoc(doc(db, 'users', d.id));
-      console.log(`  Deleted Firestore user: ${d.id}`);
+      const uid = d.id;
+      // Delete subcollections (sessions)
+      const sessionsSnap = await getDocs(collection(db, 'users', uid, 'sessions'));
+      if (!sessionsSnap.empty) {
+        const batch = writeBatch(db);
+        sessionsSnap.forEach((sDoc) => batch.delete(sDoc.ref));
+        await batch.commit();
+        console.log(`   - Deleted sessions for user: ${uid}`);
+      }
+      // Delete main doc
+      await deleteDoc(doc(db, 'users', uid));
+      console.log(`   - Deleted Firestore user: ${uid}`);
     }
   } catch (e) {
-    console.error("Error cleaning Firestore users:", e.message);
+    console.error("❌ Error cleaning Firestore:", e.message);
   }
 
-  // 2. Cleanup RTDB 'users' and 'usernames'
-  try {
-    console.log("Deleting 'users' and 'usernames' from Realtime Database...");
-    await remove(ref(rtdb, 'users'));
-    await remove(ref(rtdb, 'usernames'));
-    console.log("  RTDB 'users' and 'usernames' cleared.");
-  } catch (e) {
-    console.error("Error cleaning RTDB:", e.message);
+  // 2. Cleanup RTDB root nodes
+  const rtdbNodes = ['users', 'usernames', 'feedPosts', 'status'];
+  for (const node of rtdbNodes) {
+    try {
+      console.log(`🧹 Clearing RTDB node: /${node}...`);
+      await remove(ref(rtdb, node));
+      console.log(`   - Node /${node} cleared.`);
+    } catch (e) {
+      console.error(`❌ Error cleaning RTDB node /${node}:`, e.message);
+    }
   }
 
-  console.log("Cleanup complete.");
+  console.log("\n✅ FULL WIPE COMPLETE.");
   process.exit(0);
 }
 
-cleanup().catch(console.error);
+cleanup().catch(err => {
+  console.error("💥 CRITICAL ERROR DURING CLEANUP:", err);
+  process.exit(1);
+});

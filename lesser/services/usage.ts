@@ -1,60 +1,99 @@
-import { doc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from './firebase';
+import { ref, onValue, Unsubscribe } from 'firebase/database';
+import { rtdb } from './firebase';
 
-export interface DayUsage {
+export interface CalendarDay {
   date: Date;
   usageMinutes: number;
 }
 
-export interface AppUsage {
-  name: string;
-  usageTime: number; // in minutes
-  icon: string;
-}
-
-export interface UsageStats {
+export interface UsageSummary {
   streakDays: number;
-  hours24h: number;
   topPercentage: number;
-  calendarData: DayUsage[];
-  mostUsedApps: AppUsage[];
+  hours24h: number;
+  hoursWeek: number;
+  hoursMonth: number;
+  hours6Months: number;
+  calendarData: CalendarDay[];
+
+  rawUsage: Record<string, { totalMinutes: number; apps?: Record<string, number> }>;
+}
+
+
+
+/**
+ * Helper to get a stable YYYY-MM-DD string based on LOCAL time.
+ * Prevents the 1-day offset caused by UTC toISOString().
+ */
+export function formatLocalISO(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 /**
- * Fetch usage statistics for a given user.
- * Reads summary data from /users/{uid} and app usage from subcollections.
- */
-export async function fetchUsageStats(uid: string): Promise<UsageStats> {
-  const userSnap = await getDoc(doc(db, 'users', uid));
-  const userData = userSnap.data();
+ * Subscribes to time-based usage statistics in real-time.
 
-  // In a real app, calendarData and mostUsedApps would be subcollections.
-  // We'll generate some reasonable values if missing for now, 
-  // keeping the core stats (streak, 24h) real from the user doc.
-  
-  return {
-    streakDays:    userData?.streakDays ?? 0,
-    hours24h:      userData?.hours24h   ?? 0,
-    topPercentage: userData?.topPercentage ?? 50,
-    calendarData: Array.from({ length: 30 }, (_, i) => ({
-      date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000),
-      usageMinutes: Math.floor(Math.random() * 140),
-    })),
-    mostUsedApps: [
-      { name: 'Instagram', usageTime: 120, icon: 'camera' },
-      { name: 'TikTok', usageTime: 95, icon: 'music-note' },
-      { name: 'WhatsApp', usageTime: 60, icon: 'message-square' },
-    ],
-  };
-}
-
-/**
- * Log a session of app usage.
+ * Aggregates data for the 24h, 7d, and 30d bars + the 35-day consistency map.
  */
-export async function logUsageSession(uid: string, appName: string, minutes: number): Promise<void> {
-  await addDoc(collection(db, 'users', uid, 'sessions'), {
-    appName,
-    minutes,
-    timestamp: serverTimestamp(),
+export function subscribeToUsageData(
+  uid: string,
+  callback: (summary: UsageSummary) => void
+): Unsubscribe {
+  const userRef = ref(rtdb, `users/${uid}`);
+
+  return onValue(userRef, (snapshot) => {
+    const data = snapshot.val() || {};
+    const dailyUsage = data.daily_usage || {};
+    const now = new Date();
+    const todayStr = formatLocalISO(now);
+
+
+
+    // 1. Calculate totals for different windows
+    const getTotalMinutes = (days: number) => {
+      let total = 0;
+      for (let i = 0; i < days; i++) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        const dStr = formatLocalISO(d);
+        total += dailyUsage[dStr]?.totalMinutes || 0;
+
+      }
+      return total / 60; // Return in hours
+    };
+
+    const hours24h = (dailyUsage[todayStr]?.totalMinutes || 0) / 60;
+    const hoursWeek = getTotalMinutes(7);
+    const hoursMonth = getTotalMinutes(30);
+    const hours6Months = getTotalMinutes(180);
+
+
+    // 2. Generate 35 days for the GithubCalendar
+    const calendarData: CalendarDay[] = [];
+    for (let i = 34; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const dStr = formatLocalISO(d);
+      calendarData.push({
+        date: d,
+        usageMinutes: dailyUsage[dStr]?.totalMinutes || 0
+      });
+    }
+
+
+    callback({
+      streakDays: data.streakDays ?? 0,
+      topPercentage: data.topPercentage ?? 50,
+      hours24h,
+      hoursWeek,
+      hoursMonth,
+      hours6Months,
+      calendarData,
+
+      rawUsage: dailyUsage
+    });
+
+
   });
 }

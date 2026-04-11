@@ -198,7 +198,17 @@ const en = {
     dayStreak: 'day streak',
     vsUsers: 'vs users',
     tapToCycle: 'Tap to cycle →',
+    days: {
+      mon: 'Mon',
+      tue: 'Tue',
+      wed: 'Wed',
+      thu: 'Thu',
+      fri: 'Fri',
+      sat: 'Sat',
+      sun: 'Sun',
+    },
   },
+
 
   // ── Followers ────────────────────────────────────────────
   followers: {
@@ -219,8 +229,6 @@ const en = {
     account: 'Account',
     memberSince: 'Member since 2026',
     guestLabel: 'Guest — not synced',
-    changeUsername: 'Change Username',
-    changePassword: 'Change Password',
     logOut: 'Log Out',
     logIn: 'Log In / Sign Up',
     appMode: 'App Mode',
@@ -321,7 +329,11 @@ const es: Strings = {
     avgDaily: 'Media diaria', savedLabel: 'Ahorrado en el período', daysOnGoal: 'Días en objetivo', bestDay: 'Mejor día',
     goalLine: 'Objetivo {{h}}h', monthlySnapshot: 'Resumen mensual',
     savedThisMonth: 'ahorrado este mes', dayStreak: 'días de racha', vsUsers: 'vs usuarios', tapToCycle: 'Toca para cambiar →',
+    days: {
+      mon: 'L', tue: 'M', wed: 'X', thu: 'J', fri: 'V', sat: 'S', sun: 'D'
+    },
   },
+
   followers: {
     title: 'Seguidores',
     searchPlaceholder: 'Buscar seguidores…',
@@ -335,7 +347,7 @@ const es: Strings = {
   settings: {
     title: 'Ajustes', version: 'IMPACKTHON 2026 — {{version}}',
     account: 'Cuenta', memberSince: 'Miembro desde 2026', guestLabel: 'Invitado — no sincronizado',
-    changeUsername: 'Cambiar usuario', changePassword: 'Cambiar contraseña', logOut: 'Cerrar sesión', logIn: 'Iniciar sesión / Registrarse',
+    logOut: 'Cerrar sesión', logIn: 'Iniciar sesión / Registrarse',
     appMode: 'Modo de la app', features: '{{n}} funciones', currentlyActive: 'Activo actualmente', switchTo: 'Cambiar a {{mode}}',
     whitelist: 'Lista blanca de apps', whitelistSubtitle: 'Estas apps son siempre accesibles, incluso en modo Extremo.',
     deleteAccount: 'Eliminar cuenta',

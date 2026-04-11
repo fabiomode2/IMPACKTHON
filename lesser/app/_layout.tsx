@@ -83,6 +83,7 @@ function RootLayoutNav() {
         <Stack.Screen name="friend/[uid]" options={{ headerShown: false, animation: 'ios_from_right' }} />
         <Stack.Screen name="followers" options={{ headerShown: false, animation: 'ios_from_right' }} />
         <Stack.Screen name="+not-found" options={{ headerShown: false }} />
+        <Stack.Screen name="delete-account" options={{ title: 'Eliminar Cuenta', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
       <StatusBar style="auto" />

@@ -17,7 +17,6 @@ import {
   deleteUser,
   EmailAuthProvider,
   reauthenticateWithCredential,
-  updatePassword as firebaseUpdatePassword,
   UserCredential,
 } from 'firebase/auth';
 import {
@@ -30,6 +29,9 @@ import {
   serverTimestamp,
 } from 'firebase/database';
 import { auth, rtdb } from './firebase';
+import { performFullUserCleanup } from './userCleanup';
+import { formatLocalISO } from './usage';
+
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -69,12 +71,12 @@ export function isValidUsername(username: string): boolean {
 async function readProfile(uid: string, usernameHint?: string): Promise<UserProfile> {
   const snap = await get(ref(rtdb, `users/${uid}`));
   const data = snap.val();
-  
+
   return {
     uid,
-    username:   data?.username   ?? usernameHint ?? 'User',
-    email:      data?.email,
-    mode:       data?.mode       ?? 'mid',
+    username: data?.username ?? usernameHint ?? 'User',
+    email: data?.email,
+    mode: data?.mode ?? 'mid',
     streakDays: data?.streakDays ?? 0,
     followersCount: data?.followersCount ?? 0,
     followingCount: data?.followingCount ?? 0,
@@ -102,7 +104,7 @@ export async function registerUser(username: string, password: string): Promise<
   try {
     const trimmed = username.trim();
     const lower = trimmed.toLowerCase();
-    
+
     // 1. Validation
     if (!isValidUsername(trimmed)) {
       return { success: false, error: 'El nombre de usuario solo puede contener letras, números y guiones bajos.' };
@@ -124,7 +126,10 @@ export async function registerUser(username: string, password: string): Promise<
 
     // 2. Save to RTDB
     const timestamp = serverTimestamp();
-    
+    const today = formatLocalISO(new Date());
+
+
+
     // Atomic-like write (though not truly atomic without update({...}))
     await set(ref(rtdb, `users/${uid}`), {
       username: trimmed,
@@ -135,21 +140,26 @@ export async function registerUser(username: string, password: string): Promise<
       followersCount: 0,
       followingCount: 0,
       createdAt: timestamp,
+      daily_usage: {
+        [today]: {
+          totalMinutes: 0,
+        }
+      }
     });
-    
+
     await set(ref(rtdb, `usernames/${lower}`), uid);
 
     return {
       success: true,
-      user: { 
-        uid, 
-        username: trimmed, 
-        email, 
-        mode: 'mid', 
-        streakDays: 0, 
-        followersCount: 0, 
-        followingCount: 0, 
-        createdAt: Date.now() 
+      user: {
+        uid,
+        username: trimmed,
+        email,
+        mode: 'mid',
+        streakDays: 0,
+        followersCount: 0,
+        followingCount: 0,
+        createdAt: Date.now()
       },
     };
   } catch (err: unknown) {
@@ -182,37 +192,37 @@ export async function logoutUser(): Promise<void> {
  * Generic function to update any user profile field.
  */
 export async function updateUserProfile(
-    uid: string, 
-    data: Partial<UserProfile>
+  uid: string,
+  data: Partial<UserProfile>
 ): Promise<AuthResult> {
   try {
     // If username is changing, handle it (complex in RTDB, usually we don't allow it easily)
     if (data.username) {
-        // This prototype doesn't support easy username changes yet because we'd need to
-        // update /usernames/ index and delete the old one.
-        // For now, we'll just check if it's taken if it's DIFFERENT.
-        const currentProfile = await readProfile(uid);
-        if (data.username.toLowerCase() !== currentProfile.username.toLowerCase()) {
-            const taken = await isUsernameTaken(data.username);
-            if (taken) {
-                return { success: false, error: 'Este nombre de usuario ya está en uso.' };
-            }
-            // If we allowed it, we'd need to update BOTH nodes.
-            // Keeping it simple: just update the field for now.
+      // This prototype doesn't support easy username changes yet because we'd need to
+      // update /usernames/ index and delete the old one.
+      // For now, we'll just check if it's taken if it's DIFFERENT.
+      const currentProfile = await readProfile(uid);
+      if (data.username.toLowerCase() !== currentProfile.username.toLowerCase()) {
+        const taken = await isUsernameTaken(data.username);
+        if (taken) {
+          return { success: false, error: 'Este nombre de usuario ya está en uso.' };
         }
+        // If we allowed it, we'd need to update BOTH nodes.
+        // Keeping it simple: just update the field for now.
+      }
     }
 
     const updateMap: any = { ...data };
     if (data.username) {
-        updateMap.username_lowercase = data.username.toLowerCase();
+      updateMap.username_lowercase = data.username.toLowerCase();
     }
     if (data.createdAt) delete updateMap.createdAt;
 
     await update(ref(rtdb, `users/${uid}`), updateMap);
-    
+
     // If username changed, update the index (simplistic)
     if (data.username) {
-       await set(ref(rtdb, `usernames/${data.username.toLowerCase()}`), uid);
+      await set(ref(rtdb, `usernames/${data.username.toLowerCase()}`), uid);
     }
 
     const profile = await readProfile(uid);
@@ -222,25 +232,6 @@ export async function updateUserProfile(
   }
 }
 
-/**
- * Change the user's password.
- */
-export async function changePassword(
-  currentPassword: string,
-  newPassword: string,
-): Promise<{ success: boolean; error?: string }> {
-  const user = auth.currentUser;
-  if (!user || !user.email) return { success: false, error: 'No autenticado.' };
-
-  try {
-    const credential = EmailAuthProvider.credential(user.email, currentPassword);
-    await reauthenticateWithCredential(user, credential);
-    await firebaseUpdatePassword(user, newPassword);
-    return { success: true };
-  } catch (err: unknown) {
-    return { success: false, error: friendlyAuthError(err) };
-  }
-}
 
 /**
  * Permanently delete the user's account.
@@ -257,9 +248,13 @@ export async function deleteAccount(
 
     const uid = user.uid;
     const profile = await readProfile(uid);
-    const lower = profile.username.toLowerCase();
+    const username = profile.username;
+    const lower = username.toLowerCase();
 
-    // Cleanup RTDB
+    // Cleanup deep references (social, feed, Firestore, presence)
+    await performFullUserCleanup(uid, username);
+
+    // Cleanup core RTDB nodes
     try {
       await remove(ref(rtdb, `users/${uid}`));
       await remove(ref(rtdb, `usernames/${lower}`));
@@ -285,15 +280,15 @@ function friendlyAuthError(err: unknown): string {
 
   // Handle Firebase Auth codes
   switch (code) {
-    case 'auth/email-already-in-use':    return 'Este nombre de usuario ya está ocupado.';
-    case 'auth/user-not-found':          return 'Usuario no encontrado.';
-    case 'auth/wrong-password':          return 'Contraseña incorrecta.';
-    case 'auth/invalid-credential':      return 'Credenciales inválidas.';
-    case 'auth/weak-password':           return 'La contraseña debe tener al menos 6 caracteres.';
-    case 'auth/too-many-requests':       return 'Demasiados intentos. Prueba más tarde.';
-    case 'auth/network-request-failed':  return 'Error de red. Revisa tu conexión.';
-    case 'auth/requires-recent-login':   return 'Cierra sesión e inicia de nuevo antes de esta acción.';
-    case 'auth/invalid-email':           return 'Nombre de usuario inválido.';
+    case 'auth/email-already-in-use': return 'Este nombre de usuario ya está ocupado.';
+    case 'auth/user-not-found': return 'Usuario no encontrado.';
+    case 'auth/wrong-password': return 'Contraseña incorrecta.';
+    case 'auth/invalid-credential': return 'Credenciales inválidas.';
+    case 'auth/weak-password': return 'La contraseña debe tener al menos 6 caracteres.';
+    case 'auth/too-many-requests': return 'Demasiados intentos. Prueba más tarde.';
+    case 'auth/network-request-failed': return 'Error de red. Revisa tu conexión.';
+    case 'auth/requires-recent-login': return 'Cierra sesión e inicia de nuevo antes de esta acción.';
+    case 'auth/invalid-email': return 'Nombre de usuario inválido.';
   }
 
   // Handle Realtime Database / Firebase errors

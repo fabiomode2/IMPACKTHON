@@ -263,12 +263,34 @@ export async function fetchGlobalFeed(): Promise<FeedPost[]> {
 }
 
 /**
- * Fetch activity updates ONLY from users that {myUid} follows.
+ * Fetch activity updates ONLY from users that follow {myUid} AND {myUid} follows them back.
  */
 export async function fetchFollowedFeed(myUid: string): Promise<FeedPost[]> {
-   // Simplified RTDB implementation: fetch all and filter or just global
-   // Real app would use fan-out. For this prototype, return global feed if followed logic is complex.
-   return fetchGlobalFeed();
+  try {
+    // 1. Get my followers and following in parallel
+    const [followersList, followingList] = await Promise.all([
+      fetchFollowers(myUid),
+      fetchFollowing(myUid)
+    ]);
+
+    const followingUids = new Set(followingList.map(f => f.uid));
+    const mutualUids = followersList
+      .map(f => f.uid)
+      .filter(uid => followingUids.has(uid));
+
+    // Also include myself in the feed usually
+    mutualUids.push(myUid);
+
+    if (mutualUids.length === 0) return [];
+
+    // 2. Fetch global feed and filter
+    // Note: In production, you'd use a better query, but for hackathon prototype/small data, filtering is fine.
+    const allPosts = await fetchGlobalFeed();
+    return allPosts.filter(post => mutualUids.includes(post.uid));
+  } catch (err) {
+    console.error('fetchFollowedFeed failed:', err);
+    return [];
+  }
 }
 
 /**
@@ -320,11 +342,13 @@ export async function searchUsers(usernamePrefix: string): Promise<Friend[]> {
     const data = snap.val();
     if (!data) return [];
 
-    return Object.keys(data).map(id => ({
-      uid: id,
-      username: data[id].username ?? 'Usuario',
-      streakDays: data[id].streakDays ?? 0,
-    }));
+    return Object.keys(data)
+      .filter(id => id !== null) // basic guard
+      .map(id => ({
+        uid: id,
+        username: data[id].username ?? 'Usuario',
+        streakDays: data[id].streakDays ?? 0,
+      }));
   } catch (err) {
     console.error('searchUsers failed:', err);
     return [];
