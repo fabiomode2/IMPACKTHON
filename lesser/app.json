@@ -20,7 +20,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.fabiomode2.lesser"
+      "package": "com.anonymous.lesser"
     },
     "web": {
       "output": "static",

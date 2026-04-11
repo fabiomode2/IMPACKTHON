@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { StyleSheet, ScrollView, SafeAreaView, View, TouchableOpacity, Platform } from 'react-native';
+import { StyleSheet, ScrollView, SafeAreaView, View, TouchableOpacity, Platform, NativeModules } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/hooks/useAuth';
@@ -94,6 +94,16 @@ export default function HomeScreen() {
               {t('home.statsButton')}
             </ThemedText>
           </TouchableOpacity>
+        </View>
+
+        {/* TEMPORARY DEBUG BANNER TO PROVE IT'S WORKING/DIAGNOSE */}
+        <View style={{ padding: 12, backgroundColor: 'rgba(255, 100, 0, 0.2)', borderRadius: 8, borderWidth: 1, borderColor: 'orange' }}>
+          <ThemedText style={{ fontSize: 12, fontWeight: 'bold' }}>Diagnóstico de Sistema:</ThemedText>
+          <ThemedText style={{ fontSize: 11, marginTop: 4 }}>
+            Plataforma actual: {Platform.OS}
+            {'\n'}Módulo Nativo Kotlin Cargado: {NativeModules.AppUsageModule ? 'SÍ ✅' : 'NO ❌ (¿Estás en Expo Go?)'}
+            {'\n'}Estado del Permiso: {permissionStatus}
+          </ThemedText>
         </View>
 
         {/* Streak */}
