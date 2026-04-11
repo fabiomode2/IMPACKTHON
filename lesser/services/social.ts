@@ -29,7 +29,8 @@ import {
   Unsubscribe,
   where,
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { httpsCallable } from 'firebase/functions';
+import { db, functions } from './firebase';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -51,6 +52,15 @@ export interface FeedPost {
   timestamp: string;
 }
 
+export interface AppNotification {
+  id: string;
+  type: 'NEW_FOLLOWER';
+  fromUid: string;
+  fromUsername: string;
+  timestamp: Date | string;
+  read: boolean;
+}
+
 export interface SocialError {
   success: false;
   error: string;
@@ -67,6 +77,7 @@ export interface SocialSuccess {
  * Uses a batch write for atomic consistency:
  *   - /users/{targetUid}/followers/{myUid}  ← target gains a follower
  *   - /users/{myUid}/following/{targetUid}  ← I follow the target
+ *   - /users/{targetUid}/notifications      ← notification of new follower
  */
 export async function followUser(
   myUid: string,
@@ -75,23 +86,8 @@ export async function followUser(
   targetUsername: string,
 ): Promise<SocialSuccess | SocialError> {
   try {
-    const batch = writeBatch(db);
-
-    // target's followers subcollection
-    batch.set(doc(db, 'users', targetUid, 'followers', myUid), {
-      uid: myUid,
-      username: myUsername,
-      followedAt: serverTimestamp(),
-    });
-
-    // my following subcollection
-    batch.set(doc(db, 'users', myUid, 'following', targetUid), {
-      uid: targetUid,
-      username: targetUsername,
-      followedAt: serverTimestamp(),
-    });
-
-    await batch.commit();
+    const followFn = httpsCallable<any, any>(functions, 'onFollowUser');
+    await followFn({ targetUid, targetUsername, myUsername });
     return { success: true };
   } catch (err: unknown) {
     return { success: false, error: (err as Error).message };
@@ -100,17 +96,15 @@ export async function followUser(
 
 /**
  * Unfollow a user.
- * Atomic batch delete from both sides.
+ * Call Cloud Function for atomic consistency and counter updates.
  */
 export async function unfollowUser(
   myUid: string,
   targetUid: string,
 ): Promise<SocialSuccess | SocialError> {
   try {
-    const batch = writeBatch(db);
-    batch.delete(doc(db, 'users', targetUid, 'followers', myUid));
-    batch.delete(doc(db, 'users', myUid, 'following', targetUid));
-    await batch.commit();
+    const unfollowFn = httpsCallable<any, any>(functions, 'onUnfollowUser');
+    await unfollowFn({ targetUid });
     return { success: true };
   } catch (err: unknown) {
     return { success: false, error: (err as Error).message };
@@ -123,6 +117,46 @@ export async function unfollowUser(
 export async function isFollowing(myUid: string, targetUid: string): Promise<boolean> {
   const snap = await getDoc(doc(db, 'users', myUid, 'following', targetUid));
   return snap.exists();
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+/**
+ * Real-time listener for notifications.
+ * Returns an unsubscribe function.
+ */
+export function onNotificationsChanged(
+  uid: string,
+  callback: (notifications: AppNotification[]) => void,
+): Unsubscribe {
+  const q = query(
+    collection(db, 'users', uid, 'notifications'),
+    orderBy('timestamp', 'desc'),
+    limit(50)
+  );
+  return onSnapshot(q, snap => {
+    callback(snap.docs.map(d => ({
+      id: d.id,
+      type: d.data().type,
+      fromUid: d.data().fromUid,
+      fromUsername: d.data().fromUsername,
+      timestamp: d.data().timestamp?.toDate() ?? new Date(),
+      read: d.data().read ?? false,
+    } as AppNotification)));
+  });
+}
+
+/**
+ * Mark a specific notification or all notifications as read.
+ */
+export async function markNotificationsAsRead(uid: string, notificationIds: string[]): Promise<void> {
+  if (notificationIds.length === 0) return;
+  const batch = writeBatch(db);
+  notificationIds.forEach(id => {
+    const ref = doc(db, 'users', uid, 'notifications', id);
+    batch.update(ref, { read: true });
+  });
+  await batch.commit();
 }
 
 // ─── Followers / Following lists ─────────────────────────────────────────────
@@ -288,24 +322,53 @@ export async function postAchievement(
 // ─── User search ──────────────────────────────────────────────────────────────
 
 /**
- * Search users by username prefix (case-insensitive Firestore range query).
+ * Search users by username prefix dynamically.
+ * Combines 3 queries to catch modern users (lowercase index) AND legacy users (exact or capitalized).
  */
 export async function searchUsers(usernamePrefix: string): Promise<Friend[]> {
-  const prefix = usernamePrefix.toLowerCase(); // Ensure search is case-insensitive if data is lowercased
-  if (prefix.length < 1) return [];
+  const searchStr = usernamePrefix.trim().toLowerCase();
+  if (searchStr.length < 1) return [];
 
-  const q = query(
-    collection(db, 'users'),
-    where('username_lowercase', '>=', prefix),
-    where('username_lowercase', '<=', prefix + '\uf8ff'),
-    limit(15),
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({
-    uid:        d.id,
-    username:   d.data().username,
-    streakDays: d.data().streakDays ?? 0,
-  }));
+  try {
+    const q = query(
+      collection(db, 'users'),
+      where('username_lowercase', '>=', searchStr),
+      where('username_lowercase', '<=', searchStr + '\uf8ff'),
+      limit(20)
+    );
+
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({
+      uid: d.id,
+      username: d.data().username ?? 'Usuario',
+      streakDays: d.data().streakDays ?? 0,
+    }));
+  } catch (err) {
+    console.error('searchUsers failed:', err);
+    return [];
+  }
+}
+
+/**
+ * Fetch a list of recommended users based on maximum streak days.
+ */
+export async function getRecommendedUsers(): Promise<Friend[]> {
+  try {
+    const q = query(
+      collection(db, 'users'),
+      orderBy('streakDays', 'desc'),
+      limit(10)
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({
+      uid: d.id,
+      username: d.data().username ?? 'Usuario',
+      streakDays: d.data().streakDays ?? 0,
+    }));
+  } catch (err) {
+    console.error('getRecommendedUsers failed:', err);
+    return [];
+  }
 }
 
 /**

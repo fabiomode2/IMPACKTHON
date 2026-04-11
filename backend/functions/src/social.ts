@@ -66,6 +66,24 @@ export const onFollowUser = https.onCall(async (data: FollowData, context) => {
     followedAt: FieldValue.serverTimestamp(),
   });
 
+  // add notification to target's notifications subcollection
+  const notifRef = db.collection(`users/${targetUid}/notifications`).doc();
+  batch.set(notifRef, {
+    type: 'NEW_FOLLOWER',
+    fromUid: myUid,
+    fromUsername: myUsername,
+    read: false,
+    timestamp: FieldValue.serverTimestamp(),
+  });
+
+  // Increment counters
+  batch.update(db.doc(`users/${targetUid}`), {
+    followersCount: FieldValue.increment(1),
+  });
+  batch.update(db.doc(`users/${myUid}`), {
+    followingCount: FieldValue.increment(1),
+  });
+
   await batch.commit();
   return { success: true };
 });
@@ -100,6 +118,14 @@ export const onUnfollowUser = https.onCall(async (data: UnfollowData, context) =
 
   batch.delete(db.doc(`users/${targetUid}/followers/${myUid}`));
   batch.delete(db.doc(`users/${myUid}/following/${targetUid}`));
+
+  // Decrement counters
+  batch.update(db.doc(`users/${targetUid}`), {
+    followersCount: FieldValue.increment(-1),
+  });
+  batch.update(db.doc(`users/${myUid}`), {
+    followingCount: FieldValue.increment(-1),
+  });
 
   await batch.commit();
   return { success: true };

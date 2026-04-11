@@ -15,6 +15,7 @@ import { initializeAuth, getReactNativePersistence, getAuth } from 'firebase/aut
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 import { getFirestore } from 'firebase/firestore';
 import { getFunctions } from 'firebase/functions';
+import { getDatabase } from 'firebase/database';
 import { FIREBASE_CONFIG } from '@/constants/firebase.config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -29,5 +30,6 @@ export const auth = getApps().length === 0
 
 export const db        = getFirestore(app);
 export const functions = getFunctions(app, 'europe-west1'); // eur3 region
+export const rtdb      = getDatabase(app);
 
 export default app;

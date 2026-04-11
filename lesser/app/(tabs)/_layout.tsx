@@ -8,8 +8,13 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Platform } from "react-native";
 import { t } from "@/constants/i18n";
+import { useAuth } from "@/hooks/useAuth";
+import { usePresence } from "@/hooks/usePresence";
 
 export default function TabLayout() {
+  const { user } = useAuth();
+  usePresence(user?.uid);
+
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const colors = Colors[colorScheme ?? "light"];

@@ -14,4 +14,5 @@ export const FIREBASE_CONFIG = {
   storageBucket:     process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET     ?? 'lesser-30fb8.firebasestorage.app',
   messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ?? '61247682042',
   appId:             process.env.EXPO_PUBLIC_FIREBASE_APP_ID             ?? '1:61247682042:web:988642756acfb70864e043',
+  databaseURL:       process.env.EXPO_PUBLIC_FIREBASE_DATABASE_URL       ?? 'https://lesser-30fb8-default-rtdb.europe-west1.firebasedatabase.app',
 } as const;

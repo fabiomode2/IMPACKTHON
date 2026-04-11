@@ -1,7 +1,7 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import React from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/services/firebase';
 import { loginUser, registerUser, logoutUser, Mode, UserProfile } from '@/services/auth';
 
@@ -51,6 +51,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             streakDays: data?.streakDays ?? 0,
             createdAt: data?.createdAt?.toDate() ?? new Date(),
           };
+
+          // Lazy Migration: If the user doesn't have the modern lowercase field, add it organically.
+          if (!data?.username_lowercase && data?.username) {
+             updateDoc(doc(db, 'users', firebaseUser.uid), {
+                username_lowercase: data.username.toLowerCase()
+             }).catch(e => console.error("Migration failed:", e));
+          }
+
           setUser(profile);
           setModeState(profile.mode);
           setIsLoggedIn(true);

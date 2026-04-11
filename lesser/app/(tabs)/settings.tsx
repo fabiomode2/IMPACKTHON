@@ -9,6 +9,7 @@ import { ModeSelector } from '@/components/settings/ModeSelector';
 import { WellbeingSection } from '@/components/settings/WellbeingSection';
 import { WhitelistSection } from '@/components/settings/WhitelistSection';
 import { DebugSection } from '@/components/settings/DebugSection';
+import { DevTools } from '@/components/settings/DevTools';
 import { ThemedText } from '@/components/themed-text';
 import { t } from '@/constants/i18n';
 
@@ -29,6 +30,7 @@ export default function SettingsScreen() {
         <WellbeingSection />
         <WhitelistSection />
         <DebugSection />
+        <DevTools />
 
         <View style={styles.footer}>
           <ThemedText style={{ color: colors.textSecondary, textAlign: 'center' }}>

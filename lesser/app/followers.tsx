@@ -29,6 +29,7 @@ export default function FollowersScreen() {
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState<Friend[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [activeTab, setActiveTab] = useState<'followers' | 'following'>('following');
 
   const { user } = useAuth();
   const myUid = user?.uid ?? null;
@@ -62,10 +63,16 @@ export default function FollowersScreen() {
 
   // Combined list logic
   // If searching: show search results
-  // If not searching: show followers
+  // If not searching: show followers or following based on Active Tab
   const displayUsers = useMemo(() => {
     const followingSet = new Set(following.map(f => f.uid));
-    const sourceList = search.length >= 2 ? searchResults : followers;
+    let sourceList = followers;
+    
+    if (search.length >= 2) {
+        sourceList = searchResults;
+    } else {
+        sourceList = activeTab === 'followers' ? followers : following;
+    }
     
     return sourceList.map(item => ({
       uid: item.uid,
@@ -73,7 +80,7 @@ export default function FollowersScreen() {
       streakDays: item.streakDays,
       isFollowing: followingSet.has(item.uid),
     }));
-  }, [search, searchResults, followers, following]);
+  }, [search, searchResults, followers, following, activeTab]);
 
   const toggleFollow = async (uid: string, username: string, currentlyFollowing: boolean) => {
     if (currentlyFollowing) {
@@ -103,6 +110,22 @@ export default function FollowersScreen() {
         <View style={{ width: 40 }} />
       </View>
 
+      {/* Pestañas (Tabs) */}
+      <View style={styles.tabContainer}>
+          <TouchableOpacity 
+             style={[styles.tabBtn, activeTab === 'followers' && { borderBottomColor: colors.accent, borderBottomWidth: 2 }]} 
+             onPress={() => { setActiveTab('followers'); setSearch(''); }}
+          >
+              <ThemedText style={{ fontWeight: activeTab === 'followers' ? 'bold' : 'normal', color: activeTab === 'followers' ? colors.accent : colors.textSecondary }}>Seguidores ({followers.length})</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity 
+             style={[styles.tabBtn, activeTab === 'following' && { borderBottomColor: colors.accent, borderBottomWidth: 2 }]} 
+             onPress={() => { setActiveTab('following'); setSearch(''); }}
+          >
+              <ThemedText style={{ fontWeight: activeTab === 'following' ? 'bold' : 'normal', color: activeTab === 'following' ? colors.accent : colors.textSecondary }}>Siguiendo ({following.length})</ThemedText>
+          </TouchableOpacity>
+      </View>
+
       {/* Search Input */}
       <View style={[styles.searchContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <IconSymbol name="magnifyingglass" size={18} color={colors.textSecondary} />
@@ -128,12 +151,10 @@ export default function FollowersScreen() {
       <View style={styles.countRow}>
         <ThemedText style={[styles.countText, { color: colors.textSecondary }]}>
           {search.length >= 2 
-            ? `${displayUsers.length} results found`
-            : t('followers.countSummary', {
-                count: followers.length,
-                noun: followers.length === 1 ? t('followers.followerSingular') : t('followers.followerPlural'),
-                following: following.length,
-              })
+             ? `${displayUsers.length} resultados encontrados`
+             : activeTab === 'followers' 
+                 ? `Tienes ${followers.length} seguidores`
+                 : `Estas siguiendo a ${following.length} usuarios`
           }
         </ThemedText>
       </View>
@@ -243,6 +264,8 @@ const styles = StyleSheet.create({
   },
   backBtn: { width: 40, height: 40, justifyContent: 'center' },
   title: { fontSize: 17, fontWeight: '700' },
+  tabContainer: { flexDirection: 'row', paddingHorizontal: 16, marginTop: 8 },
+  tabBtn: { flex: 1, alignItems: 'center', paddingVertical: 12 },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
