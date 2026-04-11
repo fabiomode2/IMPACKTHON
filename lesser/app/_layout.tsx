@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from '@/hooks/useAuth';
 import { useAppTimeTracker } from '@/hooks/useAppTimeTracker';
 import { useEffect } from 'react';
 import { useRouter, useSegments, useRootNavigationState } from 'expo-router';
+import SelfiePunishment from '@/components/SelfiePunishment';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -64,6 +65,7 @@ function RootLayoutNav() {
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
       <StatusBar style="auto" />
+      <SelfiePunishment />
     </ThemeProvider>
   );
 }

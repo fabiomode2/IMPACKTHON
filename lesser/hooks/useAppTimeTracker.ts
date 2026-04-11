@@ -110,8 +110,14 @@ export function useAppTimeTracker() {
     const handleAppStateChange = async (nextAppState: AppStateStatus) => {
       if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
         checkPermission();
+        if (Platform.OS === 'android' && InstagramTrackerModule) {
+          try { InstagramTrackerModule.stopVigilante(); } catch(e) {}
+        }
       } else if (nextAppState.match(/inactive|background/)) {
         // Nos vamos al background o el user sale de la app: salvamos estado
+        if (Platform.OS === 'android' && InstagramTrackerModule) {
+          try { InstagramTrackerModule.startVigilante(); } catch(e) {}
+        }
         try {
           let currentIgToday = igUsageTodayRef.current;
           if (Platform.OS === 'android' && InstagramTrackerModule) {

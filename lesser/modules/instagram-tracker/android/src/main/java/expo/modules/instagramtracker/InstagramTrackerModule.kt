@@ -15,8 +15,74 @@ class InstagramTrackerModule : Module() {
   private val context: Context
     get() = appContext.reactContext ?: throw Exception("React context not available")
 
+  private var vigilanteThread: Thread? = null
+  private var isVigilanteRunning = false
+
+  private fun startVigilante() {
+    if (isVigilanteRunning) return
+    isVigilanteRunning = true
+    vigilanteThread = Thread {
+      var consecutiveSeconds = 0
+      while (isVigilanteRunning) {
+        try {
+          Thread.sleep(1000)
+          if (!isVigilanteRunning) break
+          
+          val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+          val endTime = System.currentTimeMillis()
+          val beginTime = endTime - 1000L * 60 * 60 * 24
+          
+          val usageEvents = usageStatsManager.queryEvents(beginTime, endTime)
+          val event = android.app.usage.UsageEvents.Event()
+          var currentForegroundApp = ""
+          
+          while (usageEvents.hasNextEvent()) {
+            usageEvents.getNextEvent(event)
+            if (event.eventType == 1) { // ACTIVITY_RESUMED
+              currentForegroundApp = event.packageName
+            } else if (event.eventType == 2) { // ACTIVITY_PAUSED
+              if (currentForegroundApp == event.packageName) {
+                currentForegroundApp = ""
+              }
+            }
+          }
+          
+          if (currentForegroundApp == "com.instagram.android") {
+            consecutiveSeconds++
+            if (consecutiveSeconds >= 30) {
+              consecutiveSeconds = 0
+              isVigilanteRunning = false // Stop
+              
+              // Emit event
+              this@InstagramTrackerModule.sendEvent("onPunishmentTriggered", mapOf("success" to true))
+              
+              // Force App to Foreground
+              val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+              if (launchIntent != null) {
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                context.startActivity(launchIntent)
+              }
+              break
+            }
+          } else {
+            consecutiveSeconds = 0
+          }
+        } catch (e: Exception) {}
+      }
+    }
+    vigilanteThread?.start()
+  }
+
+  private fun stopVigilante() {
+    isVigilanteRunning = false
+    vigilanteThread?.interrupt()
+    vigilanteThread = null
+  }
+
   override fun definition() = ModuleDefinition {
     Name("InstagramTracker")
+    
+    Events("onPunishmentTriggered")
 
     Function("hasUsagePermission") {
       val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
@@ -85,6 +151,14 @@ class InstagramTrackerModule : Module() {
       } catch (e: Exception) {}
       
       return@Function isForeground
+    }
+
+    Function("startVigilante") {
+      startVigilante()
+    }
+
+    Function("stopVigilante") {
+      stopVigilante()
     }
   }
 }
