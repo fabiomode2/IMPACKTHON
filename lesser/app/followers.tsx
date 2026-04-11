@@ -3,7 +3,7 @@ import {
   View, StyleSheet, FlatList, SafeAreaView,
   TouchableOpacity, TextInput, Animated, ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
@@ -22,6 +22,7 @@ interface UserRow {
 }
 
 export default function FollowersScreen() {
+  const params = useLocalSearchParams<{ tab?: 'followers' | 'following' }>();
   const theme = useColorScheme() ?? 'light';
   const colors = Colors[theme];
   const router = useRouter();
@@ -29,7 +30,7 @@ export default function FollowersScreen() {
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState<Friend[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [activeTab, setActiveTab] = useState<'followers' | 'following'>('following');
+  const [activeTab, setActiveTab] = useState<'followers' | 'following'>(params.tab || 'followers');
 
   const { user } = useAuth();
   const myUid = user?.uid ?? null;

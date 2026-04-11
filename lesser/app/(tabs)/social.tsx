@@ -17,33 +17,7 @@ import { useSocial } from '@/hooks/useSocial';
 import { UserDetailSheet } from '@/components/social/UserDetailSheet';
 import { t } from '@/constants/i18n';
 
-// ─── Friend Card ─────────────────────────────────────────────────────────
-function FriendCard({ friend }: { friend: Friend }) {
-  const theme = useColorScheme() ?? 'light';
-  const colors = Colors[theme];
-  const router = useRouter();
 
-  return (
-    <TouchableOpacity
-      style={[styles.friendCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-      onPress={() => router.push(`/friend/${friend.uid}`)}
-      activeOpacity={0.75}
-    >
-      <View style={[styles.friendAvatar, { backgroundColor: colors.accent + '33' }]}>
-        <ThemedText style={[styles.friendInitial, { color: colors.accent }]}>
-          {friend.username.charAt(0).toUpperCase()}
-        </ThemedText>
-      </View>
-      <ThemedText style={styles.friendName} numberOfLines={1}>{friend.username}</ThemedText>
-      <View style={styles.friendStreak}>
-        <ThemedText style={styles.friendStreakEmoji}>🔥</ThemedText>
-        <ThemedText style={[styles.friendStreakDays, { color: colors.textSecondary }]}>
-          {friend.streakDays}d
-        </ThemedText>
-      </View>
-    </TouchableOpacity>
-  );
-}
 
 // ─── Share Profile Pop-up ─────────────────────────────────────────────────
 function ShareProfileModal({
@@ -155,7 +129,7 @@ export default function SocialScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { following, follow, unfollow, isLoadingFollowers } = useSocial(user?.uid ?? null, user?.username ?? null);
+  const { followers, following, follow, unfollow, isLoadingFollowers } = useSocial(user?.uid ?? null, user?.username ?? null);
 
   const [feed, setFeed] = useState<FeedPost[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -246,7 +220,7 @@ export default function SocialScreen() {
       setIsSearching(true);
       const timer = setTimeout(async () => {
         const results = await searchUsers(searchQuery);
-        setSearchResults(results);
+        setSearchResults(results.filter(r => r.uid !== user?.uid));
         setIsSearching(false);
       }, 400);
       return () => clearTimeout(timer);
@@ -303,17 +277,17 @@ export default function SocialScreen() {
         <View style={styles.statsOverview}>
           <TouchableOpacity 
             style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={() => router.push('/followers')}
-          >
-            <ThemedText style={[styles.statNumber, { color: colors.accent }]}>{following.length}</ThemedText>
-            <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>Siguiendo</ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={() => router.push('/followers')}
+            onPress={() => router.push({ pathname: '/followers', params: { tab: 'followers' } })}
           >
             <ThemedText style={[styles.statNumber, { color: colors.success }]}>{followers.length}</ThemedText>
             <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>Seguidores</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={() => router.push({ pathname: '/followers', params: { tab: 'following' } })}
+          >
+            <ThemedText style={[styles.statNumber, { color: colors.accent }]}>{following.length}</ThemedText>
+            <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>Siguiendo</ThemedText>
           </TouchableOpacity>
         </View>
 
@@ -370,51 +344,6 @@ export default function SocialScreen() {
           </View>
         ) : (
           <>
-            {/* Friends Section */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <ThemedText style={styles.sectionTitle}>Siguiendo</ThemedText>
-                <ThemedText style={[styles.countBadge, { backgroundColor: colors.accent + '22', color: colors.accent }]}>
-                  {following.length}
-                </ThemedText>
-              </View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.friendsRow}
-              >
-                {isLoadingFollowers ? (
-                  <View style={{ width: 80, justifyContent: 'center', alignItems: 'center' }}>
-                    <ActivityIndicator color={colors.accent} />
-                  </View>
-                ) : following.length === 0 ? (
-                  <View style={styles.emptyFriends}>
-                    <ThemedText style={[styles.emptyFriendsText, { color: colors.textSecondary }]}>
-                      No sigues a nadie aún.
-                    </ThemedText>
-                  </View>
-                ) : (
-                  following.map(f => <FriendCard key={f.uid} friend={f} />)
-                )}
-              </ScrollView>
-            </View>
-
-            {/* Recommended Users (Discovery) */}
-            {recommended.length > 0 && (
-                 <View style={styles.section}>
-                    <ThemedText style={styles.sectionTitle}>Recomendados</ThemedText>
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.friendsRow}
-                    >
-                        {recommended.map(f => (
-                            <FriendCard key={f.uid} friend={f} />
-                        ))}
-                    </ScrollView>
-                 </View>
-            )}
-
             {/* Feed */}
             <View style={styles.section}>
               <ThemedText style={styles.sectionTitle}>Logros de amigos</ThemedText>
@@ -423,8 +352,8 @@ export default function SocialScreen() {
                   <View style={[styles.emptyIcon, { backgroundColor: colors.card }]}>
                     <IconSymbol name="star.fill" size={32} color={colors.textSecondary + '66'} />
                   </View>
-                  <ThemedText style={{ color: colors.textSecondary, marginTop: 16, textAlign: 'center', maxWidth: 200 }}>
-                    Sigue a tus amigos para ver sus logros diarios aquí.
+                  <ThemedText style={{ color: colors.textSecondary, marginTop: 16, textAlign: 'center', maxWidth: 220 }}>
+                    Sigue a tus amigos y que te sigan de vuelta para ver sus logros aquí.
                   </ThemedText>
                 </View>
               ) : (
