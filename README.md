@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="lesser/assets/images/icon.png" alt="Lesser Logo" width="100" />
+  <img src="lesser/assets/images/icon.png" alt="Logo de Lesser" width="100" />
 </p>
 
 <h1 align="center">Lesser 📱</h1>
 
 <p align="center">
-  <strong>Use your phone less. Live more.</strong><br/>
-  A React Native + Firebase app helping you track, reduce, and compete over your screen time.
+  <strong>Menos scroll. Más vida.</strong><br/>
+  Una app desarrollada con React Native y Firebase para ayudarte a controlar tu tiempo de pantalla, reducirlo poco a poco y motivarte con retos, estadísticas y comparativas con amigos.
 </p>
 
 <p align="center">
@@ -18,92 +18,91 @@
 
 ---
 
-## ✨ Features
+## ✨ Características principales
 
-| Feature | Description |
+| Característica | Descripción |
 |---|---|
-| 🔥 **Streak tracking** | Daily streaks with goal comparison |
-| 📊 **Usage analytics** | Cycling charts: 24h → week → month → 6 months |
-| 👥 **Social feed** | Follow friends, see their progress in real-time |
-| 🏆 **Leaderboard** | Compete with top % of users |
-| 📅 **Consistency Map** | GitHub-style heatmap of your daily usage |
-| 🌍 **i18n** | Full English & Spanish support |
-| 🔐 **Firebase Auth** | Secure username + password login |
-| 🌙 **Dark mode** | Automatic system-level theming |
-| 🎯 **3 challenge modes** | Soft 🌿 · Mid 🛡️ · Hardcore 🔥 |
-| 🔒 **Production security** | Firestore Security Rules + Cloud Functions |
+| **Rachas diarias** | Mantén tu racha cumpliendo tus objetivos de uso día a día. |
+| **Estadísticas de uso** | Consulta tu actividad con gráficos de 24 horas, semana, mes y hasta 6 meses. |
+| **Comparte con tus amigos** | Sigue a tus amigos y mira su progreso en tiempo real. |
+| **Clasificación** | Compite con otros usuarios y descubre en qué percentil estás. |
+| **Calendario de uso** | Visualiza tu actividad diaria con un mapa de calor al estilo GitHub. |
+| **Autenticación con Firebase** | Inicio de sesión seguro con usuario y contraseña. |
+| **Modo oscuro** | Cambio automático entre modo claro y oscuro. |
+| **3 modos de desafío** | Elige entre Soft 🌿, Mid 🛡️ o Hardcore 🔥 según el nivel que quieras. |
+| **Seguridad lista para producción** | Protección reforzada con Firebase y Cloud Functions. |
 
 ---
 
-## 🗂 Repository Structure
+## 🗂 Estructura del repositorio
 
-```
+```bash
 IMPACKTHON/
-├── .env.example                  # Template for EXPO_PUBLIC_ environment variables
+├── .env.example                  # Plantilla para variables EXPO_PUBLIC_
 ├── .gitignore
 ├── README.md
 │
-├── backend/                      # Firebase project root
-│   ├── .firebaserc               # Active Firebase project
-│   ├── firebase.json             # Firestore + Functions config
-│   ├── firestore.rules           # Production security rules
-│   ├── firestore.indexes.json    # Composite indexes
+├── backend/                      # Raíz del proyecto Firebase
+│   ├── .firebaserc               # Proyecto Firebase activo
+│   ├── firebase.json             # Configuración de Firestore y Functions
+│   ├── firestore.rules           # Reglas de seguridad para producción
+│   ├── firestore.indexes.json    # Índices compuestos
 │   ├── README.md
 │   └── functions/
-│       ├── package.json          # TypeScript build scripts
+│       ├── package.json          # Scripts de compilación en TypeScript
 │       ├── tsconfig.json
 │       └── src/
-│           ├── index.ts          # Entry point — exports all functions
-│           ├── users.ts          # onUserDeleted → clean up Firestore data
-│           └── social.ts         # onFollowUser / onUnfollowUser callables
+│           ├── index.ts          # Punto de entrada: exporta todas las funciones
+│           ├── users.ts          # onUserDeleted → limpieza de datos en Firestore
+│           └── social.ts         # onFollowUser / onUnfollowUser como funciones callable
 │
-└── lesser/                       # Expo / React Native app
-    ├── app/                      # Expo Router screens
-    │   ├── (tabs)/               # Bottom-tab screens (Home, Social, Settings)
+└── lesser/                       # App en Expo / React Native
+    ├── app/                      # Pantallas con Expo Router
+    │   ├── (tabs)/               # Pestañas inferiores (Inicio, Social, Ajustes)
     │   ├── _layout.tsx
-    │   ├── auth.tsx              # Login / Register
-    │   ├── onboarding.tsx        # First-time mode selection
-    │   ├── stats.tsx             # Detailed statistics
-    │   ├── followers.tsx         # Follower list (real-time Firestore)
-    │   ├── friend/[uid].tsx      # Friend profile view
+    │   ├── auth.tsx              # Inicio de sesión / Registro
+    │   ├── onboarding.tsx        # Selección inicial del modo
+    │   ├── stats.tsx             # Estadísticas detalladas
+    │   ├── followers.tsx         # Lista de seguidores en tiempo real
+    │   ├── friend/[uid].tsx      # Vista del perfil de un amigo
     │   └── modal.tsx
     │
     ├── components/
     │   ├── home/
     │   ├── settings/
-    │   │   └── AccountSection.tsx  # Delete account + settings UI
+    │   │   └── AccountSection.tsx  # Eliminación de cuenta y ajustes
     │   ├── social/
     │   └── ui/
     │
     ├── constants/
-    │   ├── firebase.config.ts    # Public Firebase client config (safe to commit)
-    │   ├── i18n.ts               # All UI strings (EN + ES), t() helper
-    │   └── theme.ts              # Colour tokens (light / dark)
+    │   ├── firebase.config.ts    # Configuración pública del cliente Firebase
+    │   ├── i18n.ts               # Textos de la interfaz (EN + ES) y helper t()
+    │   └── theme.ts              # Colores del tema (claro / oscuro)
     │
     ├── hooks/
-    │   ├── useAuth.tsx           # Firebase Auth context + state
-    │   ├── useSocial.ts          # Follow/unfollow with real-time listeners
+    │   ├── useAuth.tsx           # Contexto y estado de Firebase Auth
+    │   ├── useSocial.ts          # Seguir/dejar de seguir con listeners en tiempo real
     │   └── use-color-scheme.ts
     │
     └── services/
-        ├── firebase.ts           # Firebase initialisation (reads EXPO_PUBLIC_ env)
-        ├── auth.ts               # Login / Register / Logout / DeleteAccount
-        ├── social.ts             # Firestore follow/unfollow, feed, search
-        ├── settings.ts           # User preferences
-        └── usage.ts              # Screen-time data helpers
+        ├── firebase.ts           # Inicialización de Firebase (usa variables EXPO_PUBLIC_)
+        ├── auth.ts               # Login / Registro / Logout / Eliminar cuenta
+        ├── social.ts             # Firestore: seguir, dejar de seguir, feed y búsqueda
+        ├── settings.ts           # Preferencias del usuario
+        └── usage.ts              # Utilidades para datos de tiempo de pantalla
 ```
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Para empezar
 
-### Prerequisites
+### Requisitos previos
 
-- Node.js 20+
+- Node.js 20 o superior
 - [Expo CLI](https://docs.expo.dev/get-started/installation/)
-- [Firebase account](https://console.firebase.google.com/)
+- Una cuenta de [Firebase](https://console.firebase.google.com/)
 
-### 1. Clone & Install
+### 1. Clonar el repositorio e instalar dependencias
 
 ```bash
 git clone https://github.com/your-org/IMPACKTHON.git
@@ -111,17 +110,18 @@ cd IMPACKTHON/lesser
 npm install
 ```
 
-### 2. Set up Firebase credentials
+### 2. Configurar las credenciales de Firebase
 
-The app reads config from `EXPO_PUBLIC_` environment variables, falling back to the defaults in `constants/firebase.config.ts`.
+La app lee la configuración desde variables de entorno `EXPO_PUBLIC_`, y si no existen, usa los valores por defecto definidos en `constants/firebase.config.ts`.
 
 ```bash
-# From the IMPACKTHON/ root:
+# Desde la raíz de IMPACKTHON/
 cp .env.example .env
-# Edit .env and fill in your Firebase project values (never commit .env!)
+# Edita el archivo .env y añade los valores de tu proyecto Firebase
+# No subas .env al repositorio
 ```
 
-`.env` variables:
+Variables de `.env`:
 
 ```env
 EXPO_PUBLIC_FIREBASE_API_KEY=...
@@ -132,19 +132,19 @@ EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
 EXPO_PUBLIC_FIREBASE_APP_ID=...
 ```
 
-### 3. Run the app
+### 3. Ejecutar la app
 
 ```bash
-npm run start          # Expo dev server (scan QR with Expo Go)
-npm run android        # Android emulator
-npm run ios            # iOS simulator (macOS only)
+npm run start          # Inicia el servidor de desarrollo de Expo
+npm run android        # Abre el emulador de Android
+npm run ios            # Abre el simulador de iOS (solo en macOS)
 ```
 
 ---
 
-## 🔥 Backend — Firebase Setup
+## 🔥 Backend — Configuración de Firebase
 
-### Deploy Firestore rules & indexes
+### Desplegar reglas e índices de Firestore
 
 ```bash
 cd backend
@@ -152,9 +152,9 @@ firebase login
 firebase deploy --only firestore
 ```
 
-### Deploy Cloud Functions
+### Desplegar Cloud Functions
 
-The functions are written in TypeScript and compiled automatically on deploy:
+Las funciones están escritas en TypeScript y se compilan automáticamente al desplegar.
 
 ```bash
 cd backend/functions
@@ -163,66 +163,81 @@ cd ..
 firebase deploy --only functions
 ```
 
-> **Note:** Functions are deployed to `europe-west1` (eur3 region, same as Firestore).
+> **Nota:** las funciones se despliegan en `europe-west1` (región eur3), la misma que Firestore.
 
 ---
 
-## 🛡️ Security Architecture
+## 🛡️ Arquitectura de seguridad
 
-### Firestore Security Rules
+### Reglas de seguridad de Firestore
 
-| Collection | Read | Write |
+| Colección | Lectura | Escritura |
 |---|---|---|
-| `/users/{uid}` | Any authenticated user | Owner only |
-| `/users/{uid}/followers/*` | Any authenticated user | Cloud Functions only |
-| `/users/{uid}/following/*` | Any authenticated user | Owner only |
-| `/feedPosts/{postId}` | Any authenticated user | Author (create/delete) |
+| `/users/{uid}` | Cualquier usuario autenticado | Solo el propietario |
+| `/users/{uid}/followers/*` | Cualquier usuario autenticado | Solo Cloud Functions |
+| `/users/{uid}/following/*` | Cualquier usuario autenticado | Solo el propietario |
+| `/feedPosts/{postId}` | Cualquier usuario autenticado | El autor (crear/eliminar) |
 
 ### Cloud Functions
 
-| Function | Trigger | Purpose |
+| Función | Trigger | Propósito |
 |---|---|---|
-| `onUserDeleted` | Auth user deletion | Cleans up all Firestore data |
-| `onFollowUser` | HTTPS Callable | Atomic follow (both sides) |
-| `onUnfollowUser` | HTTPS Callable | Atomic unfollow (both sides) |
+| `onUserDeleted` | Eliminación de usuario en Auth | Limpia todos sus datos en Firestore |
+| `onFollowUser` | HTTPS Callable | Hace el follow de forma atómica en ambos lados |
+| `onUnfollowUser` | HTTPS Callable | Hace el unfollow de forma atómica en ambos lados |
 
 ---
 
-## 🔑 Firebase Credential Strategy
+## 🔑 Estrategia de credenciales en Firebase
 
-`apiKey`, `projectId`, etc. are **public identifiers** — not secrets. Security is enforced via Firestore Rules.
+Valores como `apiKey`, `projectId` y similares son **identificadores públicos**, no secretos. La seguridad real se aplica mediante las reglas de Firestore.
 
-- `constants/firebase.config.ts` — public config, safe to commit ✅
-- `.env` — local overrides, in `.gitignore` ✅
-- **Never commit**: service account keys, Firebase Admin tokens ❌
-
----
-
-## 🌍 Internationalisation
-
-All UI text is centralised in [`lesser/constants/i18n.ts`](lesser/constants/i18n.ts).
-
-Current languages: 🇬🇧 `en` · 🇪🇸 `es`
-
-To add a new language:
-
-1. Duplicate the `en` object at the bottom of `i18n.ts`
-2. Translate every value
-3. Add it to `LANGUAGES` (e.g. `{ en, es, fr }`)
-4. Call `setLanguage('fr')` on app start
+- `constants/firebase.config.ts` — configuración pública, segura para subir al repo ✅
+- `.env` — valores locales, incluido en `.gitignore` ✅
+- **Nunca subas** claves de cuentas de servicio ni tokens de Firebase Admin ❌
 
 ---
 
-## 🤝 Contributing
+## 🌍 Internacionalización
 
-1. Fork the repo
-2. Create a feature branch: `git checkout -b feat/my-feature`
-3. Commit: `git commit -m 'feat: add my feature'`
-4. Push: `git push origin feat/my-feature`
-5. Open a Pull Request
+Todos los textos de la interfaz están centralizados en [`lesser/constants/i18n.ts`](lesser/constants/i18n.ts).
+
+Idiomas disponibles actualmente: 🇬🇧 `en` · 🇪🇸 `es`
+
+### Añadir un nuevo idioma
+
+1. Duplica el objeto `en` al final de `i18n.ts`
+2. Traduce todos los valores
+3. Añádelo a `LANGUAGES` (por ejemplo: `{ en, es, fr }`)
+4. Llama a `setLanguage('fr')` al iniciar la app
 
 ---
 
-## 📄 License
+## 🤝 Contribuir
+
+1. Haz un fork del repositorio
+2. Crea una rama para tu funcionalidad:
+
+   ```bash
+   git checkout -b feat/mi-funcionalidad
+   ```
+
+3. Haz commit de tus cambios:
+
+   ```bash
+   git commit -m "feat: añade mi funcionalidad"
+   ```
+
+4. Súbelos a tu fork:
+
+   ```bash
+   git push origin feat/mi-funcionalidad
+   ```
+
+5. Abre una Pull Request
+
+---
+
+## 📄 Licencia
 
 MIT © IMPACKTHON 2026
