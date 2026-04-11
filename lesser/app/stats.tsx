@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity,
 } from 'react-native';
@@ -9,8 +9,12 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { t } from '@/constants/i18n';
+import { useAuth } from '@/hooks/useAuth';
+import { useUsageData } from '@/hooks/useUsageData';
+import { formatLocalISO } from '@/services/usage';
 
 const BAR_MAX_HEIGHT = 120;
+
 const GOAL_HOURS = 4;
 
 type ChartPeriod = 'week' | 'month' | '3months' | 'year';
@@ -25,28 +29,6 @@ function periodLabel(p: ChartPeriod): string {
   }
 }
 
-// Mock data for multiple periods
-const CHART_DATA: Record<ChartPeriod, { label: string; hours: number }[]> = {
-  week: [
-    { label: 'Mon', hours: 4.2 }, { label: 'Tue', hours: 3.1 },
-    { label: 'Wed', hours: 5.5 }, { label: 'Thu', hours: 2.8 },
-    { label: 'Fri', hours: 3.9 }, { label: 'Sat', hours: 6.1 }, { label: 'Sun', hours: 1.5 },
-  ],
-  month: [
-    { label: 'W1', hours: 4.1 }, { label: 'W2', hours: 3.5 },
-    { label: 'W3', hours: 5.2 }, { label: 'W4', hours: 2.9 },
-  ],
-  '3months': [
-    { label: 'Jan', hours: 4.8 }, { label: 'Feb', hours: 3.9 }, { label: 'Mar', hours: 3.2 },
-  ],
-  year: [
-    { label: 'J', hours: 5.2 }, { label: 'F', hours: 4.8 }, { label: 'M', hours: 4.1 },
-    { label: 'A', hours: 3.8 }, { label: 'M', hours: 3.5 }, { label: 'J', hours: 6.1 },
-    { label: 'J', hours: 5.9 }, { label: 'A', hours: 4.2 }, { label: 'S', hours: 3.1 },
-    { label: 'O', hours: 2.8 }, { label: 'N', hours: 3.4 }, { label: 'D', hours: 4.0 },
-  ],
-};
-
 function getSavingsComparison(savedHours: number): string {
   if (savedHours >= 8) return t('home.comparisons.got');
   if (savedHours >= 4) return t('home.comparisons.movie');
@@ -55,11 +37,113 @@ function getSavingsComparison(savedHours: number): string {
   return t('home.comparisons.nap');
 }
 
-function BarChart({ period }: { period: ChartPeriod }) {
+/**
+ * Aggregates raw usage data into chart-ready segments based on the period.
+ */
+function getChartData(dailyUsage: Record<string, { totalMinutes: number }>, period: ChartPeriod) {
+  const now = new Date();
+  const data: { label: string; hours: number }[] = [];
+
+  switch (period) {
+    case 'week': {
+      const days = [t('stats.days.mon'), t('stats.days.tue'), t('stats.days.wed'), t('stats.days.thu'), t('stats.days.fri'), t('stats.days.sat'), t('stats.days.sun')];
+      // Find current day 0-6 (Mon-Sun). JS date is 0-6 (Sun-Sat).
+      // We want to show the current week Monday-Sunday.
+      const currentDay = now.getDay(); // 0 is Sun
+      const daysSinceMon = currentDay === 0 ? 6 : currentDay - 1;
+      
+      const mon = new Date(now);
+      mon.setDate(now.getDate() - daysSinceMon);
+
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(mon);
+        d.setDate(mon.getDate() + i);
+        const dStr = formatLocalISO(d);
+        data.push({
+          label: days[i],
+          hours: (dailyUsage[dStr]?.totalMinutes || 0) / 60
+        });
+      }
+      break;
+    }
+    case 'month': {
+      const year = now.getFullYear();
+      const month = now.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      const weeks: { mins: number; days: number }[] = [];
+      let currentWeekMins = 0;
+      let currentWeekDayCount = 0;
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const date = new Date(year, month, d);
+        const dayOfWeek = date.getDay(); // 0 (Sunday) to 6 (Saturday)
+
+        const dStr = formatLocalISO(date);
+        currentWeekMins += dailyUsage[dStr]?.totalMinutes || 0;
+        currentWeekDayCount++;
+
+        // End week if it's Sunday (0) or the last day of the month
+        if (dayOfWeek === 0 || d === daysInMonth) {
+          weeks.push({ mins: currentWeekMins, days: currentWeekDayCount });
+          currentWeekMins = 0;
+          currentWeekDayCount = 0;
+        }
+      }
+
+      // Map weeks to chart data
+      weeks.forEach((w, i) => {
+        data.push({
+          label: `W${i + 1}`,
+          hours: w.mins / (60 * w.days), // Average hours per day in that calendar week
+        });
+      });
+      break;
+    }
+
+    case '3months': {
+      for (let m = 2; m >= 0; m--) {
+        const target = new Date(now.getFullYear(), now.getMonth() - m, 1);
+        let monthMins = 0;
+        let daysInMonth = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+        
+        for (let d = 1; d <= daysInMonth; d++) {
+          const ds = formatLocalISO(new Date(target.getFullYear(), target.getMonth(), d));
+          monthMins += dailyUsage[ds]?.totalMinutes || 0;
+        }
+        data.push({ 
+          label: target.toLocaleString('default', { month: 'short' }), 
+          hours: monthMins / (60 * daysInMonth) 
+        });
+      }
+      break;
+    }
+    case 'year': {
+      for (let m = 11; m >= 0; m--) {
+        const target = new Date(now.getFullYear(), now.getMonth() - m, 1);
+        let monthMins = 0;
+        const daysInMonth = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+        
+        for (let d = 1; d <= daysInMonth; d++) {
+          const ds = formatLocalISO(new Date(target.getFullYear(), target.getMonth(), d));
+          monthMins += dailyUsage[ds]?.totalMinutes || 0;
+        }
+        data.push({ 
+          label: target.toLocaleString('default', { month: 'narrow' }), 
+          hours: monthMins / (60 * daysInMonth) 
+        });
+      }
+      break;
+    }
+
+  }
+  return data;
+}
+
+function BarChart({ data }: { data: { label: string; hours: number }[] }) {
   const theme = useColorScheme() ?? 'light';
   const colors = Colors[theme];
-  const data = CHART_DATA[period];
-  const maxHours = Math.max(...data.map(d => d.hours));
+  const maxHours = Math.max(GOAL_HOURS + 1, ...data.map(d => d.hours));
 
   return (
     <View>
@@ -95,19 +179,52 @@ export default function StatsScreen() {
   const colors = Colors[theme];
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const { data: usageData, loading } = useUsageData(user?.uid);
   const [periodIdx, setPeriodIdx] = useState(0);
   const period = PERIOD_CYCLE[periodIdx];
 
-  const weekData = CHART_DATA.week;
-  const totalSaved = weekData.reduce((acc, d) => acc + Math.max(0, GOAL_HOURS - d.hours), 0);
-  const avgDaily = weekData.reduce((s, d) => s + d.hours, 0) / weekData.length;
+  const dailyUsage = usageData?.rawUsage || {};
+  
+  const chartData = useMemo(() => getChartData(dailyUsage, period), [dailyUsage, period]);
+
+  // KPI Calculations (based on last 7 days of raw data)
+  const { avgDaily, totalSaved, daysOnGoal, bestDay } = useMemo(() => {
+    let sumHours = 0;
+    let saved = 0;
+    let goalCount = 0;
+    let minUsage = 24; // starting max
+    let count = 0;
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dStr = formatLocalISO(d);
+      const hours = (dailyUsage[dStr]?.totalMinutes || 0) / 60;
+
+      
+      sumHours += hours;
+      saved += Math.max(0, GOAL_HOURS - hours);
+      if (hours <= GOAL_HOURS && dailyUsage[dStr]) goalCount++;
+      if (hours < minUsage) minUsage = hours;
+      count++;
+    }
+
+    return {
+      avgDaily: sumHours / 7,
+      totalSaved: saved,
+      daysOnGoal: goalCount,
+      bestDay: minUsage === 24 ? 0 : minUsage
+    };
+  }, [dailyUsage]);
+
   const comparison = getSavingsComparison(totalSaved);
 
   const summaryCards = [
     { label: t('stats.avgDaily'), value: `${avgDaily.toFixed(1)}h`, icon: 'clock.fill' as const, color: colors.accent },
     { label: t('stats.savedLabel'), value: `${totalSaved.toFixed(1)}h`, icon: 'star.fill' as const, color: colors.success },
-    { label: t('stats.daysOnGoal'), value: `${weekData.filter(d => d.hours <= GOAL_HOURS).length}/7`, icon: 'checkmark.circle.fill' as const, color: colors.success },
-    { label: t('stats.bestDay'), value: `${Math.min(...weekData.map(d => d.hours)).toFixed(1)}h`, icon: 'bolt.fill' as const, color: '#FF9500' },
+    { label: t('stats.daysOnGoal'), value: `${daysOnGoal}/7`, icon: 'checkmark.circle.fill' as const, color: colors.success },
+    { label: t('stats.bestDay'), value: `${bestDay.toFixed(1)}h`, icon: 'bolt.fill' as const, color: '#FF9500' },
   ];
 
   return (
@@ -167,7 +284,7 @@ export default function StatsScreen() {
               </ThemedText>
             </View>
           </View>
-          <BarChart period={period} />
+          <BarChart data={chartData} />
         </TouchableOpacity>
 
         {/* Monthly snapshot */}
@@ -175,9 +292,9 @@ export default function StatsScreen() {
           <ThemedText style={styles.chartTitle}>{t('stats.monthlySnapshot')}</ThemedText>
           <View style={styles.monthlyRow}>
             {[
-              { value: '42h', label: t('stats.savedThisMonth') },
-              { value: '15🔥', label: t('stats.dayStreak') },
-              { value: 'Top 15%', label: t('stats.vsUsers') },
+              { value: `${(usageData?.hoursMonth || 0).toFixed(0)}h`, label: t('stats.savedThisMonth') },
+              { value: `${usageData?.streakDays ?? 0}🔥`, label: t('stats.dayStreak') },
+              { value: `Top ${usageData?.topPercentage ?? 50}%`, label: t('stats.vsUsers') },
             ].map((item, i, arr) => (
               <React.Fragment key={i}>
                 <View style={styles.monthlyItem}>

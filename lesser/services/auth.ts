@@ -30,6 +30,8 @@ import {
 } from 'firebase/database';
 import { auth, rtdb } from './firebase';
 import { performFullUserCleanup } from './userCleanup';
+import { formatLocalISO } from './usage';
+
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -124,7 +126,9 @@ export async function registerUser(username: string, password: string): Promise<
 
     // 2. Save to RTDB
     const timestamp = serverTimestamp();
-    const today = new Date().toISOString().split('T')[0];
+    const today = formatLocalISO(new Date());
+
+
 
     // Atomic-like write (though not truly atomic without update({...}))
     await set(ref(rtdb, `users/${uid}`), {
