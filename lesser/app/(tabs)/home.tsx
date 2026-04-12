@@ -123,7 +123,6 @@ export default function HomeScreen() {
     loadAIMessage();
   }, [savedWeek, streakDays, username, mode, usageHours24h, goalHours, topPercentage]);
 
-  const calendarData = stats?.calendarData || [];
 
 
   const fallbackMostUsedApps = [
@@ -137,12 +136,13 @@ export default function HomeScreen() {
   const mostUsedApps = realMostUsedApps.length > 0 ? realMostUsedApps : fallbackMostUsedApps;
 
 
+  // Compact Progress Component
+  const progress = Math.min(1, usageHours24h / goalHours);
+  const isOverGoal = usageHours24h > goalHours;
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
-      <ScrollView
-        contentContainerStyle={[styles.container, { paddingBottom: insets.bottom + 24 }]}
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={[styles.container, { paddingBottom: insets.bottom + 24 }]}>
         {/* Header */}
         <View style={styles.header}>
           <View>
@@ -153,15 +153,6 @@ export default function HomeScreen() {
               {username ?? t('home.greetingGuest')} 👋
             </ThemedText>
           </View>
-          <TouchableOpacity
-            style={[styles.statsBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={() => router.push('/stats')}
-          >
-            <IconSymbol name="chart.bar.fill" size={18} color={colors.accent} />
-            <ThemedText style={[styles.statsBtnText, { color: colors.accent }]}>
-              {t('home.statsButton')}
-            </ThemedText>
-          </TouchableOpacity>
         </View>
 
 
@@ -211,7 +202,7 @@ export default function HomeScreen() {
             {!aiMessage && <ActivityIndicator size="small" color={colors.accent} />}
           </View>
           {aiMessage ? (
-            <ThemedText style={styles.aiContent}>{aiMessage}</ThemedText>
+            <ThemedText style={styles.aiContent} numberOfLines={4}>{aiMessage}</ThemedText>
           ) : (
             <View style={styles.aiSkeletonContainer}>
               <View style={[styles.aiSkeleton, { width: '90%' }]} />
@@ -239,74 +230,23 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   container: {
-    flexGrow: 1,
-    padding: 20,
+    flex: 1,
+    padding: 24,
     paddingTop: 60,
-    gap: 16,
+    gap: 20,
+    justifyContent: 'center',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 4,
+    marginBottom: 8,
   },
-  greeting: { fontSize: 15 },
-  name: { fontSize: 26, fontWeight: '800' },
-  statsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  statsBtnText: { fontSize: 14, fontWeight: '600' },
-  savingsCard: {
-    borderRadius: 20,
-    padding: 20,
-    gap: 12,
-  },
-  savingsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  savingsTitle: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-  savingsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-  },
-  savingsItem: { flex: 1, alignItems: 'center', gap: 2 },
-  savingsDivider: {
-    width: 1,
-    height: 32,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-  },
-  savingsValue: { color: '#FFF', fontSize: 22, fontWeight: '800' },
-  savingsLabel: { color: 'rgba(255,255,255,0.65)', fontSize: 11 },
-  savingsComparison: {
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: 13,
-    lineHeight: 18,
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
-  section: {
-    padding: 20,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
+  greeting: { fontSize: 16 },
+  name: { fontSize: 32, fontWeight: '800' },
   aiCard: {
-    padding: 20,
-    borderRadius: 24,
+    padding: 24,
+    borderRadius: 28,
     borderWidth: 1.5,
     gap: 12,
     borderStyle: 'dashed',
@@ -317,29 +257,62 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   aiIconContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
   },
   aiTitle: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: 1.2,
   },
   aiContent: {
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 24,
     fontWeight: '500',
   },
-  aiSkeletonContainer: {
+  aiSkeletonContainer: { gap: 8 },
+  aiSkeleton: { height: 14, backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 7 },
+  
+  progressCard: {
+    padding: 24,
+    borderRadius: 28,
+    borderWidth: 1,
+    gap: 16,
+  },
+  progressTitle: { fontSize: 13, fontWeight: '800', textTransform: 'uppercase', opacity: 0.6, letterSpacing: 1 },
+  progressMain: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+  progressValue: { fontSize: 48, fontWeight: '900' },
+  progressGoal: { fontSize: 18, fontWeight: '600' },
+  progressBarBg: { height: 12, borderRadius: 6, overflow: 'hidden' },
+  progressBarFill: { height: '100%', borderRadius: 6 },
+  progressStatus: { fontSize: 14, fontWeight: '700', textAlign: 'center' },
+  
+  bigStatsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    padding: 20,
+    borderRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  bigStatsBtnText: { color: '#FFF', fontSize: 17, fontWeight: '700' },
+  
+  timerMini: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
+    marginTop: 'auto',
   },
-  aiSkeleton: {
-    height: 12,
-    backgroundColor: 'rgba(0,0,0,0.05)',
-    borderRadius: 6,
-  },
+  timerMiniText: { fontSize: 13, color: 'rgba(0,0,0,0.5)' },
+});
 });

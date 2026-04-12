@@ -64,11 +64,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="social"
+        name="estadisticas"
         options={{
-          title: "Social",
+          title: "Estadísticas",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={24} name="person.2.fill" color={color} />
+            <IconSymbol size={24} name="chart.bar.fill" color={color} />
           ),
         }}
       />
