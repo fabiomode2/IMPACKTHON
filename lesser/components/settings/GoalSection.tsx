@@ -5,6 +5,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/hooks/useAuth';
+import { t } from '@/constants/i18n';
 
 export function GoalSection() {
   const theme = useColorScheme() ?? 'light';
@@ -36,14 +37,17 @@ export function GoalSection() {
 
   return (
     <View style={styles.container}>
-      <ThemedText style={styles.sectionTitle}>Objetivo Diario</ThemedText>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8 }}>
+        <IconSymbol name="timer" size={20} color={colors.textSecondary} />
+        <ThemedText style={styles.sectionTitle}>{t('settings.goal')}</ThemedText>
+      </View>
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
         
         <View style={styles.headerRow}>
           <View style={styles.headerInfo}>
-            <ThemedText style={styles.title}>Límite de tiempo</ThemedText>
+            <ThemedText style={styles.title}>{t('settings.timeLimit')}</ThemedText>
             <ThemedText style={[styles.subtitle, { color: colors.textSecondary }]}>
-              Ajusta tu meta (influye en la racha)
+              {t('settings.adjustGoal')}
             </ThemedText>
           </View>
           
@@ -51,9 +55,9 @@ export function GoalSection() {
             <TouchableOpacity 
               onPress={decrease} 
               disabled={loading || currentGoalMinutes <= 0}
-              style={{ opacity: (loading || currentGoalMinutes <= 0) ? 0.3 : 1 }}
+              style={[styles.controlBtn, { backgroundColor: colors.accent + '22', opacity: (loading || currentGoalMinutes <= 0) ? 0.3 : 1 }]}
             >
-              <IconSymbol name="minus.circle.fill" size={32} color={colors.accent} />
+              <IconSymbol name="minus" size={20} color={colors.accent} />
             </TouchableOpacity>
             
             <View style={styles.valueContainer}>
@@ -67,9 +71,9 @@ export function GoalSection() {
             <TouchableOpacity 
               onPress={increase} 
               disabled={loading || currentGoalMinutes >= 1440}
-              style={{ opacity: (loading || currentGoalMinutes >= 1440) ? 0.3 : 1 }}
+              style={[styles.controlBtn, { backgroundColor: colors.accent + '22', opacity: (loading || currentGoalMinutes >= 1440) ? 0.3 : 1 }]}
             >
-              <IconSymbol name="plus.circle.fill" size={32} color={colors.accent} />
+              <IconSymbol name="plus" size={20} color={colors.accent} />
             </TouchableOpacity>
           </View>
         </View>
@@ -114,8 +118,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   valueText: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '800',
+  },
+  controlBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   title: {
     fontSize: 17,

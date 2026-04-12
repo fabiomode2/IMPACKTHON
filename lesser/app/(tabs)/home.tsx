@@ -5,8 +5,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
-import { ActivityIndicator, AppState, NativeModules, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ActivityIndicator, AppState, NativeModules, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { StreakCounter } from '@/components/home/StreakCounter';
 import { TopUsersBadge } from '@/components/home/TopUsersBadge';
@@ -18,8 +18,7 @@ import { generateMotivationalMessage } from '@/services/llm';
 import { checkAndPostMilestones } from '@/services/social';
 import { getDailyUsageStats, hasPermission, requestPermission } from '../../modules/expo-app-usage';
 
-import ReactNative from 'react-native';
-const {BackgroundFabModule} = ReactNative.NativeModules;
+const {BackgroundFabModule} = NativeModules;
 
 
 
@@ -96,7 +95,7 @@ export default function HomeScreen() {
   }, [user, streakDays, topPercentage, stats]);
 
 
-  const goalHours = 4;
+  const goalHours = (user?.goalMinutes ?? 240) / 60;
   const savedToday = Math.max(0, goalHours - usageHours24h);
   const savedWeek = Math.max(0, (goalHours * 7) - usageHoursWeek);
   const savedMonth = Math.max(0, (goalHours * 30) - usageHoursMonth);
@@ -117,7 +116,7 @@ export default function HomeScreen() {
         name: app.name,
         minutes: app.usageTime,
       }));
-      const msg = await generateMotivationalMessage(username ?? 'Usuario', mode, stats, appUsages);
+      const msg = await generateMotivationalMessage(username ?? t('home.greetingGuest'), mode, stats, appUsages);
       setAiMessage(msg);
     }
     loadAIMessage();
@@ -142,7 +141,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
-      <View style={[styles.container, { paddingBottom: insets.bottom + 24 }]}>
+      <ScrollView contentContainerStyle={[styles.container, { paddingBottom: insets.bottom + 24 }]}>
         {/* Header */}
         <View style={styles.header}>
           <View>
@@ -186,9 +185,9 @@ export default function HomeScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <IconSymbol name="exclamationmark.triangle.fill" size={24} color={colors.accent} />
               <View style={{ flex: 1 }}>
-                <ThemedText style={{ fontWeight: 'bold', color: colors.text }}>Activar Estadísticas</ThemedText>
+                <ThemedText style={{ fontWeight: 'bold', color: colors.text }}>{t('home.activateStats')}</ThemedText>
                 <ThemedText style={{ fontSize: 13, color: colors.textSecondary }}>
-                  Lesser necesita "Acceso de uso" para medir tu tiempo de pantalla. Toca aquí para activarlo en Ajustes.
+                  {t('home.activateStatsDesc')}
                 </ThemedText>
               </View>
             </View>
@@ -230,11 +229,9 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   container: {
-    flex: 1,
     padding: 24,
-    paddingTop: 60,
+    paddingTop: 32,
     gap: 20,
-    justifyContent: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -277,6 +274,18 @@ const styles = StyleSheet.create({
   aiSkeletonContainer: { gap: 8 },
   aiSkeleton: { height: 14, backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 7 },
   
+  section: {
+    padding: 24,
+    borderRadius: 28,
+    borderWidth: 1,
+    gap: 12,
+  },
+  statsBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+  },
+
   progressCard: {
     padding: 24,
     borderRadius: 28,
@@ -314,5 +323,4 @@ const styles = StyleSheet.create({
     marginTop: 'auto',
   },
   timerMiniText: { fontSize: 13, color: 'rgba(0,0,0,0.5)' },
-});
 });

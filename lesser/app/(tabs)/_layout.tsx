@@ -57,7 +57,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: "Home",
+          title: t('home.title'),
           tabBarIcon: ({ color }) => (
             <IconSymbol size={24} name="house.fill" color={color} />
           ),
@@ -66,7 +66,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="estadisticas"
         options={{
-          title: "Estadísticas",
+          title: t('home.stats'),
           tabBarIcon: ({ color }) => (
             <IconSymbol size={24} name="chart.bar.fill" color={color} />
           ),
@@ -75,7 +75,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Settings",
+          title: t('settings.title'),
           tabBarIcon: ({ color }) => (
             <IconSymbol size={24} name="gearshape.fill" color={color} />
           ),

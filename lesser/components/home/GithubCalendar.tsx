@@ -80,12 +80,15 @@ export function GithubCalendar({ data }: GithubCalendarProps) {
 
   const getColor = (intensity: number) => {
     if (intensity < 0) return 'transparent';
+    if (intensity === 0) return theme === 'light' ? '#EBEDF0' : '#2D333B'; // Github-like empty color
+
+    // Scale from Light Green to Dark Green
+    // Higher intensity => Darker color
     switch (intensity) {
-      case 4: return colors.success;
-      case 3: return colors.success + 'AA';
-      case 2: return colors.success + '66';
-      case 1: return colors.success + '33';
-      case 0: return colors.success + '15'; // Verde muy claro
+      case 4: return '#216E39'; // Darkest Green
+      case 3: return '#30A14E';
+      case 2: return '#40C463';
+      case 1: return '#9BE9A8'; // Lightest Green
       default: return colors.border;
     }
   };
@@ -137,7 +140,7 @@ export function GithubCalendar({ data }: GithubCalendarProps) {
                   styles.square,
                   {
                     width: squareSize,
-                    height: squareSize * 0.8, // User wants it "wider than tall"
+                    height: squareSize * 0.8, // Increased height as requested
                     backgroundColor: getColor(getIntensity(day.usageMinutes)),
                   },
                 ]}

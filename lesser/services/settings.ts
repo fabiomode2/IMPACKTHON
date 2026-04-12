@@ -23,6 +23,7 @@ export interface UserSettings {
   whitelistedApps: WhitelistedApp[];
   silentNudgeEnabled: boolean;
   silentNudgeThreshold: number; // in minutes
+  language: string;
 }
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
@@ -39,6 +40,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   whitelistedApps: DEFAULT_APPS,
   silentNudgeEnabled: false,
   silentNudgeThreshold: 10,
+  language: 'es',
 };
 
 // ─── Operations ───────────────────────────────────────────────────────────────
@@ -57,6 +59,7 @@ export async function fetchSettings(uid: string): Promise<UserSettings> {
         whitelistedApps:      data.whitelistedApps      ?? DEFAULT_SETTINGS.whitelistedApps,
         silentNudgeEnabled:   data.silentNudgeEnabled   ?? DEFAULT_SETTINGS.silentNudgeEnabled,
         silentNudgeThreshold: data.silentNudgeThreshold ?? DEFAULT_SETTINGS.silentNudgeThreshold,
+        language:             data.language             ?? DEFAULT_SETTINGS.language,
       };
     }
     return DEFAULT_SETTINGS;

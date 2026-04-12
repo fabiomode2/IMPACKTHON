@@ -30,19 +30,19 @@ export default function AuthScreen() {
     
     if (!isLogin) {
        // Registration specific validations
-       if (usernameInput.trim().length < 3) {
-         setLocalError('El nombre de usuario debe tener al menos 3 caracteres.');
-         return;
-       }
-       const usernameRegex = /^[a-zA-Z0-9_]+$/;
-       if (!usernameRegex.test(usernameInput.trim())) {
-         setLocalError('El nombre de usuario solo puede contener letras, números y guiones bajos.');
-         return;
-       }
-       if (password.length < 6) {
-         setLocalError('La contraseña debe tener al menos 6 caracteres.');
-         return;
-       }
+        if (usernameInput.trim().length < 3) {
+          setLocalError(t('auth.errorUsernameShort'));
+          return;
+        }
+        const usernameRegex = /^[a-zA-Z0-9_]+$/;
+        if (!usernameRegex.test(usernameInput.trim())) {
+          setLocalError(t('auth.errorUsernameInvalid'));
+          return;
+        }
+        if (password.length < 6) {
+          setLocalError(t('auth.errorPasswordShort'));
+          return;
+        }
     }
     
     const success = isLogin
@@ -76,11 +76,11 @@ export default function AuthScreen() {
 
         <View style={styles.form}>
           <View style={styles.inputWrapper}>
-             <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('auth.usernamePlaceholder')}</ThemedText>
-             <TextInput
-                style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text }]}
-                placeholder="ej: juan_perez"
-                placeholderTextColor={colors.textSecondary + '70'}
+              <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('auth.usernameLabel')}</ThemedText>
+              <TextInput
+                 style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text }]}
+                 placeholder={t('auth.usernamePlaceholder')}
+                 placeholderTextColor={colors.textSecondary + '70'}
                 value={usernameInput}
                 onChangeText={setUsernameInput}
                 autoCapitalize="none"
@@ -89,16 +89,16 @@ export default function AuthScreen() {
           </View>
 
           <View style={styles.inputWrapper}>
-             <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('auth.password')}</ThemedText>
-             <TextInput
-                style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text }]}
-                placeholder="••••••••"
-                placeholderTextColor={colors.textSecondary + '70'}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                editable={!isLoading}
-              />
+              <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('auth.passwordLabel')}</ThemedText>
+              <TextInput
+                 style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text }]}
+                 placeholder={t('auth.passwordPlaceholder')}
+                 placeholderTextColor={colors.textSecondary + '70'}
+                 value={password}
+                 onChangeText={setPassword}
+                 secureTextEntry
+                 editable={!isLoading}
+               />
           </View>
 
           {activeError && (
@@ -122,9 +122,9 @@ export default function AuthScreen() {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.switchButton} onPress={() => { setIsLogin(!isLogin); setLocalError(null); }}>
+           <TouchableOpacity style={styles.switchButton} onPress={() => { setIsLogin(!isLogin); setLocalError(null); }}>
             <ThemedText style={{ color: colors.textSecondary }}>
-               {isLogin ? "¿No tienes cuenta? " : "¿Ya tienes cuenta? "}
+               {isLogin ? t('auth.switchToRegister') : t('auth.switchToLogin')}
                <ThemedText style={{ color: colors.accent, fontWeight: '700' }}>
                  {isLogin ? t('auth.registerButton') : t('auth.loginButton')}
                </ThemedText>

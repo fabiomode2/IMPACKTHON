@@ -4,6 +4,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { t } from '@/constants/i18n';
 
 export function WhitelistSection() {
   const theme = useColorScheme() ?? 'light';
@@ -25,7 +26,7 @@ export function WhitelistSection() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <ThemedText style={styles.sectionTitle}>Whitelisted Apps</ThemedText>
+        <ThemedText style={styles.sectionTitle}>{t('settings.whitelistTitle')}</ThemedText>
         <IconSymbol name="plus.circle.fill" size={24} color={colors.accent} />
       </View>
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -49,7 +50,7 @@ export function WhitelistSection() {
         ))}
       </View>
       <ThemedText style={[styles.helperText, { color: colors.textSecondary }]}>
-        These apps will not be affected by screen time limitations.
+        {t('settings.whitelistHelper')}
       </ThemedText>
     </View>
   );

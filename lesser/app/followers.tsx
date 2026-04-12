@@ -117,13 +117,13 @@ export default function FollowersScreen() {
              style={[styles.tabBtn, activeTab === 'followers' && { borderBottomColor: colors.accent, borderBottomWidth: 2 }]} 
              onPress={() => { setActiveTab('followers'); setSearch(''); }}
           >
-              <ThemedText style={{ fontWeight: activeTab === 'followers' ? 'bold' : 'normal', color: activeTab === 'followers' ? colors.accent : colors.textSecondary }}>Seguidores ({followers.length})</ThemedText>
+              <ThemedText style={{ fontWeight: activeTab === 'followers' ? 'bold' : 'normal', color: activeTab === 'followers' ? colors.accent : colors.textSecondary }}>{t('social.followers')} ({followers.length})</ThemedText>
           </TouchableOpacity>
           <TouchableOpacity 
              style={[styles.tabBtn, activeTab === 'following' && { borderBottomColor: colors.accent, borderBottomWidth: 2 }]} 
              onPress={() => { setActiveTab('following'); setSearch(''); }}
           >
-              <ThemedText style={{ fontWeight: activeTab === 'following' ? 'bold' : 'normal', color: activeTab === 'following' ? colors.accent : colors.textSecondary }}>Siguiendo ({following.length})</ThemedText>
+              <ThemedText style={{ fontWeight: activeTab === 'following' ? 'bold' : 'normal', color: activeTab === 'following' ? colors.accent : colors.textSecondary }}>{t('social.following')} ({following.length})</ThemedText>
           </TouchableOpacity>
       </View>
 
@@ -132,7 +132,7 @@ export default function FollowersScreen() {
         <IconSymbol name="magnifyingglass" size={18} color={colors.textSecondary} />
         <TextInput
           style={[styles.searchInput, { color: colors.text }]}
-          placeholder="Buscar amigos..."
+          placeholder={t('followers.searchPlaceholder')}
           placeholderTextColor={colors.textSecondary}
           value={search}
           onChangeText={setSearch}
@@ -152,10 +152,10 @@ export default function FollowersScreen() {
       <View style={styles.countRow}>
         <ThemedText style={[styles.countText, { color: colors.textSecondary }]}>
           {search.length >= 2 
-             ? `${displayUsers.length} resultados encontrados`
+             ? t('stats.resultsFound', { count: displayUsers.length })
              : activeTab === 'followers' 
-                 ? `Tienes ${followers.length} seguidores`
-                 : `Estas siguiendo a ${following.length} usuarios`
+                 ? t('followers.countSummary', { count: followers.length, noun: followers.length === 1 ? t('followers.followerSingular') : t('followers.followerPlural'), following: following.length })
+                 : t('followers.noFollowing') // Fallback
           }
         </ThemedText>
       </View>
@@ -178,8 +178,8 @@ export default function FollowersScreen() {
               </View>
               <ThemedText style={[styles.emptyText, { color: colors.textSecondary }]}>
                 {search.length >= 2 
-                  ? isSearching ? 'Buscando...' : 'No se encontraron usuarios.'
-                  : activeTab === 'followers' ? 'Aún no tienes seguidores.' : 'No sigues a nadie todavía.'}
+                  ? isSearching ? t('followers.searching') : t('followers.noResults')
+                  : activeTab === 'followers' ? t('followers.noFollowers') : t('followers.noFollowing')}
               </ThemedText>
             </View>
           }
