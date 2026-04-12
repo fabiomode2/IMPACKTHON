@@ -26,18 +26,18 @@ export default function DeleteAccountScreen() {
   const theme = useColorScheme() ?? 'light';
   const colors = Colors[theme];
 
-  const isButtonEnabled = confirmationText === 'ELIMINAR MI CUENTA' && password.length > 0;
+  const isButtonEnabled = confirmationText === t('settings.deleteConfirmValue') && password.length > 0;
 
   const handleDelete = async () => {
     if (!isButtonEnabled) return;
 
     Alert.alert(
-      "Confirmación Final",
-      "Esta acción NO se puede deshacer. Se borrarán tus seguidores, seguidos, posts y perfil para siempre.",
+      t('settings.deleteConfirmTitle'),
+      t('settings.deleteConfirmDesc'),
       [
-        { text: "Cancelar", style: "cancel" },
+        { text: t('common.cancel'), style: "cancel" },
         {
-          text: "ELIMINAR PERMANENTEMENTE",
+          text: t('settings.deletePermanently'),
           style: "destructive",
           onPress: async () => {
             setIsLoading(true);
@@ -48,7 +48,7 @@ export default function DeleteAccountScreen() {
             if (result.success) {
               router.replace('/auth');
             } else {
-              setError(result.error || "Ocurrió un error al eliminar la cuenta.");
+              setError(result.error || t('settings.deleteAccountError'));
               setIsLoading(false);
             }
           }
@@ -59,7 +59,7 @@ export default function DeleteAccountScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <Stack.Screen options={{ title: 'Eliminar Cuenta', headerShown: false }} />
+      <Stack.Screen options={{ title: t('settings.deleteAccountTitle'), headerShown: false }} />
       
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
@@ -73,29 +73,29 @@ export default function DeleteAccountScreen() {
           </View>
           
           <ThemedText style={[styles.title, { color: colors.error }]}>
-            ¿Estás seguro?
+            {t('settings.deleteSureTitle')}
           </ThemedText>
           <ThemedText style={styles.subtitle}>
-            Esta acción borrará permanentemente toda tu presencia en Lesser.
+            {t('settings.deleteSureSubtitle')}
           </ThemedText>
         </View>
 
         <View style={[styles.warningBox, { backgroundColor: colors.card, borderColor: colors.error + '40' }]}>
-          <ThemedText style={styles.warningTitle}>Perderás para siempre:</ThemedText>
+          <ThemedText style={styles.warningTitle}>{t('settings.deleteLoseTitle')}</ThemedText>
           <View style={styles.list}>
-            <BulletItem text="Tu perfil y nombre de usuario" colors={colors} />
-            <BulletItem text="Todos tus seguidores y personas que sigues" colors={colors} />
-            <BulletItem text="Todo tu historial de actividad y posts" colors={colors} />
-            <BulletItem text="Comparaciones de estadísticas con amigos" colors={colors} />
+            <BulletItem text={t('settings.deleteLose1')} colors={colors} />
+            <BulletItem text={t('settings.deleteLose2')} colors={colors} />
+            <BulletItem text={t('settings.deleteLose3')} colors={colors} />
+            <BulletItem text={t('settings.deleteLose4')} colors={colors} />
           </View>
         </View>
 
         <View style={styles.form}>
           <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>Confirmar Contraseña</ThemedText>
+            <ThemedText style={styles.label}>{t('settings.deleteLabelPassword')}</ThemedText>
             <TextInput
               style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text }]}
-              placeholder="Escribe tu contraseña"
+              placeholder={t('settings.deletePlaceholderPassword')}
               placeholderTextColor={colors.textSecondary + '70'}
               secureTextEntry
               value={password}
@@ -106,11 +106,11 @@ export default function DeleteAccountScreen() {
 
           <View style={styles.inputGroup}>
             <ThemedText style={styles.label}>
-              Escribe <ThemedText style={{ fontWeight: 'bold', color: colors.error }}>ELIMINAR MI CUENTA</ThemedText>
+              {t('settings.deleteLabelConfirmText', { text: t('settings.deleteConfirmValue') })}
             </ThemedText>
             <TextInput
               style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text }]}
-              placeholder="ELIMINAR MI CUENTA"
+              placeholder={t('settings.deleteConfirmValue')}
               placeholderTextColor={colors.textSecondary + '70'}
               value={confirmationText}
               onChangeText={setConfirmationText}
@@ -136,7 +136,7 @@ export default function DeleteAccountScreen() {
             {isLoading ? (
               <ActivityIndicator color="#FFF" />
             ) : (
-              <ThemedText style={styles.deleteButtonText}>Eliminar Permanentemente</ThemedText>
+              <ThemedText style={styles.deleteButtonText}>{t('settings.deletePermanently')}</ThemedText>
             )}
           </TouchableOpacity>
 
@@ -145,7 +145,7 @@ export default function DeleteAccountScreen() {
             onPress={() => router.back()}
             disabled={isLoading}
           >
-            <ThemedText style={{ color: colors.textSecondary }}>Mejor no, volver atrás</ThemedText>
+            <ThemedText style={{ color: colors.textSecondary }}>{t('settings.deleteCancel')}</ThemedText>
           </TouchableOpacity>
         </View>
       </ScrollView>

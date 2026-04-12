@@ -1,3 +1,4 @@
+import { t } from '@/constants/i18n';
 import React, { useState } from 'react';
 import {
   View, StyleSheet, TouchableOpacity, SafeAreaView,
@@ -12,54 +13,23 @@ import { Mode } from '@/services/auth';
 
 const MODES: {
   id: Mode;
-  name: string;
-  emoji: string;
-  tagline: string;
-  description: string;
-  features: { icon: string; text: string }[];
+  icon: any;
   accentColor: string;
 }[] = [
     {
       id: 'soft',
-      name: 'Soft',
-      emoji: '🌿',
-      tagline: 'Awareness, not restriction.',
-      description: 'Track your habits and build awareness without any hard blocks.',
+      icon: 'leaf.fill',
       accentColor: '#34C759',
-      features: [
-        { icon: 'chart.bar.fill', text: 'Daily screen time tracking' },
-        { icon: 'flame.fill', text: 'Streak counter with goal' },
-        { icon: 'bell.fill', text: 'Gentle daily reminders' },
-        { icon: 'person.2.fill', text: 'Social feed & friend progress' },
-        { icon: 'calendar', text: '30-day consistency calendar' },
-      ],
     },
     {
       id: 'mid',
-      name: 'Mid',
-      emoji: '🛡️',
-      tagline: 'Active reduction.',
-      description: 'Soft locks and warning screens nudge you off apps when you go over your daily goal.',
+      icon: 'shield.fill',
       accentColor: '#FF9500',
-      features: [
-        { icon: 'checkmark.circle.fill', text: 'All Soft features' },
-        { icon: 'exclamationmark.triangle.fill', text: 'Warning screens on over-use' },
-        { icon: 'timer', text: 'Per-app daily limits' },
-        { icon: 'lock.fill', text: 'Temporary app access cooldowns' },
-        { icon: 'star.fill', text: 'Leaderboard & top user badge' },
-      ],
     },
     {
       id: 'hardcore',
-      name: 'Hardcore',
-      emoji: '🔥',
-      tagline: 'Maximum enforcement.',
-      description: 'Hard-locks, strict limits, and automatic accountability photos when you stare too long.',
+      icon: 'flame.fill',
       accentColor: '#FF3B30',
-      features: [
-        { icon: 'checkmark.circle.fill', text: 'All Mid features' },
-        { icon: 'camera.fill', text: 'Auto photos when staring too long' },
-      ],
     },
   ];
 
@@ -75,9 +45,9 @@ export default function OnboardingScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <ThemedText type="title" style={styles.title}>Choose Your Path</ThemedText>
+          <ThemedText type="title" style={styles.title}>{t('onboarding.title')}</ThemedText>
           <ThemedText style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Tap a mode to select it. You can always change this later in Settings.
+            {t('onboarding.subtitle')}
           </ThemedText>
         </View>
 
@@ -99,13 +69,15 @@ export default function OnboardingScreen() {
                 activeOpacity={0.8}
               >
                 <View style={styles.cardHeader}>
-                  <ThemedText style={styles.emoji}>{mode.emoji}</ThemedText>
+                  <View style={[styles.iconContainer, { backgroundColor: isSelected ? mode.accentColor + '15' : colors.border + '30' }]}>
+                    <IconSymbol name={mode.icon} size={24} color={isSelected ? mode.accentColor : colors.textSecondary} />
+                  </View>
                   <View style={{ flex: 1 }}>
                     <ThemedText style={[styles.cardTitle, isSelected && { color: mode.accentColor }]}>
-                      {mode.name} Mode
+                      {t(`onboarding.${mode.id}.name`)}
                     </ThemedText>
                     <ThemedText style={[styles.tagline, { color: colors.textSecondary }]}>
-                      {mode.tagline}
+                      {t(`onboarding.${mode.id}.tagline`)}
                     </ThemedText>
                   </View>
                   {isSelected && (
@@ -116,14 +88,15 @@ export default function OnboardingScreen() {
                 </View>
 
                 <ThemedText style={[styles.cardDescription, { color: colors.textSecondary }]}>
-                  {mode.description}
+                  {t(`onboarding.${mode.id}.description`)}
                 </ThemedText>
 
                 <View style={styles.features}>
-                  {mode.features.map((f, idx) => (
+                  {Array.isArray(t(`onboarding.${mode.id}.features`)) && 
+                   ((t(`onboarding.${mode.id}.features`) as unknown) as string[]).map((f, idx) => (
                     <View key={idx} style={styles.featureRow}>
-                      <IconSymbol name={f.icon as any} size={14} color={isSelected ? mode.accentColor : colors.textSecondary} />
-                      <ThemedText style={[styles.featureText, { color: colors.textSecondary }]}>{f.text}</ThemedText>
+                      <IconSymbol name="checkmark.circle.fill" size={14} color={isSelected ? mode.accentColor : colors.textSecondary} />
+                      <ThemedText style={[styles.featureText, { color: colors.textSecondary }]}>{f}</ThemedText>
                     </View>
                   ))}
                 </View>
@@ -148,7 +121,7 @@ export default function OnboardingScreen() {
             activeOpacity={0.85}
           >
             <ThemedText style={styles.confirmText}>
-              {selectedMode?.emoji} Start with {selectedMode?.name} Mode
+              {t('onboarding.confirmButton', { mode: t(`onboarding.${selectedMode?.id}.name`) })}
             </ThemedText>
           </TouchableOpacity>
         </View>
@@ -179,7 +152,13 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 10,
   },
-  emoji: { fontSize: 28 },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   cardTitle: { fontSize: 20, fontWeight: '700' },
   tagline: { fontSize: 13, marginTop: 2 },
   checkBadge: {

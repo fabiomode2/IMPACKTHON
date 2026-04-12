@@ -396,14 +396,16 @@ export async function checkAndPostMilestones(
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+import { t } from '@/constants/i18n';
+
 function formatTimestamp(date?: Date): string {
-  if (!date || isNaN(date.getTime())) return 'Justo ahora';
+  if (!date || isNaN(date.getTime())) return t('common.justNow');
   const diff = Date.now() - date.getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'Ahora';
-  if (mins < 60) return `Hace ${mins}m`;
+  if (mins < 1) return t('common.now');
+  if (mins < 60) return t('common.agoMinutes', { n: mins });
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `Hace ${hours}h`;
+  if (hours < 24) return t('common.agoHours', { n: hours });
   const days = Math.floor(hours / 24);
-  return `Hace ${days}d`;
+  return t('common.agoDays', { n: days });
 }

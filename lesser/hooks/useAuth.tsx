@@ -11,6 +11,7 @@ import {
   Mode, 
   UserProfile 
 } from '@/services/auth';
+import { fetchSettings, saveSettings } from '@/services/settings';
 
 export type { Mode };
 
@@ -29,6 +30,7 @@ interface AuthState {
   updateProfile: (data: Partial<UserProfile>) => Promise<boolean>;
   logout: () => void;
   setMode: (mode: Mode) => void;
+  language: string;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -41,7 +43,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [lastError, setLastError] = useState<string | null>(null);
   const [mode, setModeState] = useState<Mode>('mid');
   const [user, setUser] = useState<UserProfile | null>(null);
-
   // Subscribe to Firebase Auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -50,6 +51,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const snap = await get(ref(rtdb, `users/${firebaseUser.uid}`));
           const data = snap.val();
           
+          // Remote settings sync for language disabled as we force Spanish
+
           if (data) {
             const profile: UserProfile = {
               uid: firebaseUser.uid,
@@ -161,6 +164,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (user) updateProfile({ mode: newMode });
   };
 
+  // language methods removed as we force Spanish
+
   return (
     <AuthContext.Provider
       value={{
@@ -178,6 +183,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         updateProfile,
         logout,
         setMode,
+        language: 'es',
       }}
     >
       {children}

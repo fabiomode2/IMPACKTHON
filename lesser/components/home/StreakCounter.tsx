@@ -4,6 +4,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { t } from '@/constants/i18n';
 
 interface StreakCounterProps {
   days: number;
@@ -25,21 +26,21 @@ export function StreakCounter({ days }: StreakCounterProps) {
     <View style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={styles.header}>
         <IconSymbol name="flame.fill" size={24} color={flameColor} />
-        <ThemedText style={styles.title}>Current Streak</ThemedText>
+        <ThemedText style={styles.title}>{t('home.streak')}</ThemedText>
       </View>
       <View style={styles.row}>
         <ThemedText style={[styles.number, { color: colors.text }]}>{days}</ThemedText>
         <View style={styles.labelColumn}>
           <ThemedText style={[styles.dayLabel, { color: flameColor }]}>
-            {days === 1 ? 'day' : 'days'}
+            {days === 1 ? t('home.streakDay').split(' ')[1] : t('home.streakDays', { count: '' }).trim()}
           </ThemedText>
-          <ThemedText style={[styles.label, { color: colors.textSecondary }]}>achieving goal</ThemedText>
+          <ThemedText style={[styles.label, { color: colors.textSecondary }]}>{t('home.streakGoal')}</ThemedText>
         </View>
       </View>
       <View style={[styles.badge, { backgroundColor: flameColor + '22' }]}>
         <IconSymbol name="flame.fill" size={12} color={flameColor} />
         <ThemedText style={[styles.badgeText, { color: flameColor }]}>
-          {days >= 30 ? 'Legendary 🏆' : days >= 14 ? 'On Fire!' : days >= 7 ? 'Great going!' : 'Keep it up!'}
+          {days >= 30 ? t('home.badgeLegendary') : days >= 14 ? t('home.badgeFire') : days >= 7 ? t('home.badgeGreat') : t('home.badgeKeepUp')}
         </ThemedText>
       </View>
     </View>

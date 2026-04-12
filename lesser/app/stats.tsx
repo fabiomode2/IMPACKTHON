@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUsageData } from '@/hooks/useUsageData';
 import { formatLocalISO } from '@/services/usage';
 import { GithubCalendar } from '@/components/home/GithubCalendar';
+import { MostUsedApps } from '@/components/home/MostUsedApps';
 
 const BAR_MAX_HEIGHT = 120;
 
@@ -190,6 +191,20 @@ export default function StatsScreen() {
   
   const chartData = useMemo(() => getChartData(dailyUsage, period), [dailyUsage, period]);
 
+  // Transform apps for MostUsedApps component (Today)
+  const mostUsedApps = useMemo(() => {
+    const todayStr = formatLocalISO(new Date());
+    const appsRecord = dailyUsage[todayStr]?.apps || {};
+    return Object.entries(appsRecord)
+      .map(([name, usageTime]) => ({
+        name,
+        usageTime,
+        icon: 'app.fill' // Generic icon as we don't have mapping here yet
+      }))
+      .sort((a, b) => b.usageTime - a.usageTime)
+      .slice(0, 5);
+  }, [dailyUsage]);
+
   // KPI Calculations (based on last 7 days of raw data)
   const { avgDaily, totalSaved, daysOnGoal, bestDay } = useMemo(() => {
     let sumHours = 0;
@@ -256,6 +271,24 @@ export default function StatsScreen() {
           <ThemedText style={styles.savingsComparison}>
             {t('stats.watchEquivalent', { what: comparison })}
           </ThemedText>
+
+          {/* Breakdown Row (Today/Week/Month) */}
+          <View style={styles.breakdownRow}>
+            <View style={styles.breakdownItem}>
+              <ThemedText style={styles.breakdownValue}>{(usageData?.hours24h || 0).toFixed(1)}h</ThemedText>
+              <ThemedText style={styles.breakdownLabel}>{t('home.timeSavedToday')}</ThemedText>
+            </View>
+            <View style={[styles.breakdownDivider, { backgroundColor: 'rgba(255,255,255,0.3)' }]} />
+            <View style={styles.breakdownItem}>
+              <ThemedText style={styles.breakdownValue}>{(usageData?.hoursWeek || 0).toFixed(1)}h</ThemedText>
+              <ThemedText style={styles.breakdownLabel}>{t('home.timeSavedWeek')}</ThemedText>
+            </View>
+            <View style={[styles.breakdownDivider, { backgroundColor: 'rgba(255,255,255,0.3)' }]} />
+            <View style={styles.breakdownItem}>
+              <ThemedText style={styles.breakdownValue}>{(usageData?.hoursMonth || 0).toFixed(0)}h</ThemedText>
+              <ThemedText style={styles.breakdownLabel}>{t('home.timeSavedMonth')}</ThemedText>
+            </View>
+          </View>
         </View>
 
         {/* KPI grid */}
@@ -293,6 +326,11 @@ export default function StatsScreen() {
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <GithubCalendar data={calendarData} />
         </View>
+
+        {/* Most Used Apps */}
+        {mostUsedApps.length > 0 && (
+          <MostUsedApps apps={mostUsedApps} />
+        )}
 
         {/* Monthly snapshot */}
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -470,5 +508,34 @@ const styles = StyleSheet.create({
   monthlyLabel: {
     fontSize: 11,
     textAlign: 'center',
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 16,
+    padding: 16,
+  },
+  breakdownItem: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
+  },
+  breakdownDivider: {
+    width: 1,
+    height: 24,
+  },
+  breakdownValue: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  breakdownLabel: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 });

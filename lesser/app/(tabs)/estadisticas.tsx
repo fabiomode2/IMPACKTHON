@@ -1,33 +1,33 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-  StyleSheet, SafeAreaView, View, TouchableOpacity, ScrollView,
-  Modal, Pressable, TextInput, ActivityIndicator, RefreshControl, Share, Platform,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import * as Clipboard from 'expo-clipboard';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { UserDetailSheet } from '@/components/social/UserDetailSheet';
 import { ThemedText } from '@/components/themed-text';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { t, getLanguage } from '@/constants/i18n';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { FeedItem } from '@/components/social/FeedItem';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Friend, FeedPost, fetchFollowedFeed, searchUsers, getRecommendedUsers, AppNotification, onNotificationsChanged, markNotificationsAsRead } from '@/services/social';
 import { useAuth } from '@/hooks/useAuth';
 import { useSocial } from '@/hooks/useSocial';
-import { UserDetailSheet } from '@/components/social/UserDetailSheet';
-import { t } from '@/constants/i18n';
+import { AppNotification, FeedPost, fetchFollowedFeed, Friend, getRecommendedUsers, markNotificationsAsRead, onNotificationsChanged, searchUsers } from '@/services/social';
+import * as Clipboard from 'expo-clipboard';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Modal, Pressable,
+  RefreshControl,
+  SafeAreaView,
+  ScrollView,
+  Share,
+  StyleSheet,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // --- Stats Components ---
 import { GithubCalendar } from '@/components/home/GithubCalendar';
-import { MostUsedApps } from '@/components/home/MostUsedApps';
-import { StreakCounter } from '@/components/home/StreakCounter';
-import { UsageHoursCounter } from '@/components/home/UsageHoursCounter';
-import { TopUsersBadge } from '@/components/home/TopUsersBadge';
 import { useUsageData } from '@/hooks/useUsageData';
 import { formatLocalISO } from '@/services/usage';
 
 const BAR_MAX_HEIGHT = 100;
-const GOAL_HOURS = 4;
 
 type ChartPeriod = 'week' | 'month' | '3months' | 'year';
 const PERIOD_CYCLE: ChartPeriod[] = ['week', 'month', '3months', 'year'];
@@ -93,7 +93,7 @@ function getChartData(dailyUsage: Record<string, { totalMinutes: number }>, peri
         }
       }
       weeks.forEach((w, i) => {
-        data.push({ label: `W${i + 1}`, hours: w.mins / (60 * w.days) });
+        data.push({ label: t('stats.weekLabel', { n: i + 1 }), hours: w.mins / (60 * w.days) });
       });
       break;
     }
@@ -107,7 +107,7 @@ function getChartData(dailyUsage: Record<string, { totalMinutes: number }>, peri
           monthMins += dailyUsage[ds]?.totalMinutes || 0;
         }
         data.push({ 
-          label: target.toLocaleString('default', { month: 'short' }), 
+          label: target.toLocaleString(getLanguage() === 'es' ? 'es-ES' : 'en-US', { month: 'short' }), 
           hours: monthMins / (60 * daysInMonth) 
         });
       }
@@ -123,7 +123,7 @@ function getChartData(dailyUsage: Record<string, { totalMinutes: number }>, peri
           monthMins += dailyUsage[ds]?.totalMinutes || 0;
         }
         data.push({ 
-          label: target.toLocaleString('default', { month: 'narrow' }), 
+          label: target.toLocaleString(getLanguage() === 'es' ? 'es-ES' : 'en-US', { month: 'narrow' }), 
           hours: monthMins / (60 * daysInMonth) 
         });
       }
@@ -133,17 +133,17 @@ function getChartData(dailyUsage: Record<string, { totalMinutes: number }>, peri
   return data;
 }
 
-function BarChart({ data }: { data: { label: string; hours: number }[] }) {
+function BarChart({ data, goalHours }: { data: { label: string; hours: number }[], goalHours: number }) {
   const theme = useColorScheme() ?? 'light';
   const colors = Colors[theme];
-  const maxHours = Math.max(GOAL_HOURS + 1, ...data.map(d => d.hours));
+  const maxHours = Math.max(goalHours + 1, ...data.map(d => d.hours));
 
   return (
     <View style={styles.chartContainer}>
       <View style={styles.bars}>
         {data.map((item, i) => {
           const height = Math.max(4, (item.hours / maxHours) * BAR_MAX_HEIGHT);
-          const isOver = item.hours > GOAL_HOURS;
+          const isOver = item.hours > goalHours;
           const barColor = isOver ? colors.error : colors.success;
           return (
             <View key={i} style={styles.barCol}>
@@ -160,7 +160,7 @@ function BarChart({ data }: { data: { label: string; hours: number }[] }) {
       </View>
       <View style={[styles.goalLine, { borderColor: colors.accent }]}>
         <ThemedText style={[styles.goalLineLabel, { color: colors.accent }]}>
-          {t('stats.goalLine', { h: GOAL_HOURS })}
+          {t('stats.goalLine', { h: goalHours })}
         </ThemedText>
       </View>
     </View>
@@ -176,9 +176,9 @@ function ShareProfileModal({ visible, onClose, username }: { visible: boolean; o
   const handleNativeShare = async () => {
     try {
       await Share.share({
-        message: `¡Únete a mi reto en Lesser! Sígueme para ver mi progreso reduciendo el tiempo de pantalla: ${profileLink}`,
+        message: t('stats.shareMessageNative', { link: profileLink }),
         url: profileLink,
-        title: 'Compartir Perfil de Lesser',
+        title: t('stats.sharePopupTitleNative'),
       });
       onClose();
     } catch (error) { console.error('Error sharing:', error); }
@@ -198,18 +198,18 @@ function ShareProfileModal({ visible, onClose, username }: { visible: boolean; o
             <ThemedText style={[styles.shareAvatarText, { color: colors.accent }]}>{initial}</ThemedText>
           </View>
           <ThemedText style={[styles.shareUsername, { color: colors.text }]}>@{username}</ThemedText>
-          <ThemedText style={[styles.shareTitle, { color: colors.text }]}>Comparte tu progreso</ThemedText>
-          <ThemedText style={[styles.shareSubtitle, { color: colors.textSecondary }]}>Invita a otros a seguir tu racha y motivarse juntos.</ThemedText>
+          <ThemedText style={[styles.shareTitle, { color: colors.text }]}>{t('stats.shareTitle')}</ThemedText>
+          <ThemedText style={[styles.shareSubtitle, { color: colors.textSecondary }]}>{t('stats.shareSubtitle')}</ThemedText>
           <TouchableOpacity style={[styles.copyBtn, { backgroundColor: colors.accent }]} onPress={handleNativeShare} activeOpacity={0.8}>
             <IconSymbol name="square.and.arrow.up" size={18} color="#FFF" />
-            <ThemedText style={styles.copyBtnText}>Enviar por WhatsApp / Más</ThemedText>
+            <ThemedText style={styles.copyBtnText}>{t('stats.sendWhatsApp')}</ThemedText>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.linkBox, { backgroundColor: colors.background, borderColor: colors.border }]} onPress={handleCopy}>
             <IconSymbol name="doc.on.doc" size={16} color={colors.textSecondary} />
-            <ThemedText style={[styles.linkText, { color: colors.textSecondary }]} numberOfLines={1}>{copied ? '¡Copiado!' : profileLink}</ThemedText>
+            <ThemedText style={[styles.linkText, { color: colors.textSecondary }]} numberOfLines={1}>{copied ? t('stats.copied') : profileLink}</ThemedText>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.closeBtn, { borderColor: colors.border }]} onPress={onClose} activeOpacity={0.7}>
-            <ThemedText style={[styles.closeBtnText, { color: colors.textSecondary }]}>Cerrar</ThemedText>
+            <ThemedText style={[styles.closeBtnText, { color: colors.textSecondary }]}>{t('common.close')}</ThemedText>
           </TouchableOpacity>
         </Pressable>
       </Pressable>
@@ -227,6 +227,7 @@ export default function EstadisticasScreen() {
   
   // Data for Stats
   const { data: usageData, loading: usageLoading } = useUsageData(user?.uid);
+  const goalHours = (user?.goalMinutes ?? 240) / 60;
   const streakDays = usageData?.streakDays ?? 0;
   const topPercentage = usageData?.topPercentage ?? 50;
   const dailyUsage = usageData?.rawUsage || {};
@@ -261,7 +262,7 @@ export default function EstadisticasScreen() {
     try {
       const posts = await fetchFollowedFeed(user.uid);
       if (posts.length === 0) {
-        setFeed([{ id: 'mock1', uid: '123', username: 'alex_growth', type: 'STREAK', days: 12, timestamp: 'Hace 2 horas', message: 'Manteniendo el enfoque a tope.' }] as any);
+        setFeed([{ id: 'mock1', uid: '123', username: 'alex_growth', type: 'STREAK', days: 12, timestamp: t('social.agoHours', { n: 2 }), message: t('social.mockMessage') }] as any);
       } else { setFeed(posts); }
     } catch (e) { console.error('Feed load failed:', e); }
   }, [user]);
@@ -301,7 +302,7 @@ export default function EstadisticasScreen() {
     if (unreadIds.length > 0 && user) { await markNotificationsAsRead(user.uid, unreadIds); }
   };
 
-  const displayUsername = user?.username ?? 'guest';
+  const displayUsername = user?.username ?? t('common.guest');
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
@@ -312,31 +313,19 @@ export default function EstadisticasScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <ThemedText type="title">Estadísticas</ThemedText>
+          <ThemedText type="title">{t('stats.title')}</ThemedText>
           <View style={{ flexDirection: 'row', gap: 12 }}>
-            <TouchableOpacity onPress={openNotifications} style={styles.bellBtn}>
-              <IconSymbol name="bell.fill" size={24} color={colors.text} />
-              {unreadCount > 0 && (
-                <View style={styles.badge}><ThemedText style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</ThemedText></View>
-              )}
-            </TouchableOpacity>
             <TouchableOpacity style={[styles.shareButton, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => setShowShare(true)}>
               <IconSymbol name="person.badge.plus" size={16} color={colors.accent} />
-              <ThemedText style={[styles.shareButtonText, { color: colors.accent }]}>Invitar</ThemedText>
+              <ThemedText style={[styles.shareButtonText, { color: colors.accent }]}>{t('stats.invite')}</ThemedText>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* 1. STREAK */}
-        <StreakCounter days={streakDays} />
-
-        {/* 2. USAGE HOURS COUNTER */}
-        <UsageHoursCounter
-          hours24h={usageData?.hours24h ?? 0}
-          hoursWeek={usageData?.hoursWeek ?? 0}
-          hoursMonth={usageData?.hoursMonth ?? 0}
-          hours6Months={usageData?.hours6Months ?? 0}
-        />
+            {/* 4. CALENDAR */}
+        <View style={[styles.statSection, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <GithubCalendar data={calendarData} />
+        </View>
 
         {/* 3. CHARTS (from Stats screen) */}
         <TouchableOpacity
@@ -350,67 +339,22 @@ export default function EstadisticasScreen() {
               <ThemedText style={[styles.cycleText, { color: colors.accent }]}>{t('stats.tapToCycle')}</ThemedText>
             </View>
           </View>
-          <BarChart data={chartData} />
+          <BarChart data={chartData} goalHours={goalHours} />
         </TouchableOpacity>
 
-        {/* 4. CALENDAR */}
-        <View style={[styles.statSection, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <GithubCalendar data={calendarData} />
-        </View>
-
-        {/* 5. MOST USED APPS */}
-        <MostUsedApps apps={usageData?.apps || []} />
-
-        {/* 6. TOP USERS BADGE */}
-        <TopUsersBadge percentage={topPercentage} />
-
-
-        <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-        {/* 7. SOCIAL FEATURES (Below Stats) */}
-        <View style={styles.socialHeader}>
-          <ThemedText style={styles.sectionTitle}>Comunidad</ThemedText>
-        </View>
 
         <View style={styles.statsOverview}>
           <TouchableOpacity style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => router.push({ pathname: '/followers', params: { tab: 'followers' } })}>
             <ThemedText style={[styles.statNumber, { color: colors.success }]}>{followers.length}</ThemedText>
-            <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>Seguidores</ThemedText>
+            <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>{t('stats.followers')}</ThemedText>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => router.push({ pathname: '/followers', params: { tab: 'following' } })}>
             <ThemedText style={[styles.statNumber, { color: colors.accent }]}>{following.length}</ThemedText>
-            <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>Siguiendo</ThemedText>
+            <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>{t('stats.following')}</ThemedText>
           </TouchableOpacity>
         </View>
 
-        <View style={[styles.searchContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <IconSymbol name="magnifyingglass" size={18} color={colors.textSecondary} />
-          <TextInput style={[styles.searchInput, { color: colors.text }]} placeholder="Buscar amigos..." placeholderTextColor={colors.textSecondary} value={searchQuery} onChangeText={setSearchQuery} autoCapitalize="none" />
-          {searchQuery.length > 0 && <TouchableOpacity onPress={() => setSearchQuery('')}><IconSymbol name="xmark.circle.fill" size={18} color={colors.textSecondary} /></TouchableOpacity>}
-        </View>
-
-        {searchQuery.length > 0 ? (
-          <View style={styles.resultsContainer}>
-            {isSearching ? <ActivityIndicator color={colors.accent} /> : searchResults.length === 0 ? <ThemedText>No hay resultados</ThemedText> : (
-              <View style={styles.resultsList}>
-                {searchResults.map(f => (
-                  <TouchableOpacity key={f.uid} style={[styles.resultItem, { borderBottomColor: colors.border }]} onPress={() => { setSelectedUser({ uid: f.uid, username: f.username }); setShowSheet(true); }}>
-                    <View style={[styles.friendAvatarSmall, { backgroundColor: colors.accent + '22' }]}><ThemedText style={{ color: colors.accent }}>{f.username[0].toUpperCase()}</ThemedText></View>
-                    <ThemedText style={{ flex: 1 }}>@{f.username}</ThemedText>
-                    <IconSymbol name="chevron.right" size={16} color={colors.textSecondary} />
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </View>
-        ) : (
-          <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Logros de amigos</ThemedText>
-            {feed.length === 0 ? <ThemedText style={{ textAlign: 'center', opacity: 0.5 }}>No hay actividad reciente.</ThemedText> : (
-              <View style={{ gap: 12 }}>{feed.map(item => <FeedItem key={item.id} data={item as any} />)}</View>
-            )}
-          </View>
-        )}
+    
       </ScrollView>
 
       <ShareProfileModal visible={showShare} onClose={() => setShowShare(false)} username={displayUsername} />
@@ -421,7 +365,7 @@ export default function EstadisticasScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
-  scrollContent: { padding: 20, paddingTop: 60, gap: 20 },
+  scrollContent: { padding: 20, paddingTop: 32, gap: 20 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   shareButton: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 22, borderWidth: 1 },
   shareButtonText: { fontSize: 13, fontWeight: '700' },

@@ -7,6 +7,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/useAuth';
 import { Mode } from '@/services/auth';
+import { t } from '@/constants/i18n';
 
 
 import ReactNative from 'react-native';
@@ -15,48 +16,19 @@ const {BackgroundFabModule} = ReactNative.NativeModules;
 
 const MODES: {
   id: Mode;
-  name: string;
-  emoji: string;
-  features: string[];
+  icon: any;
 }[] = [
   {
     id: 'soft',
-    name: 'Soft Mode',
-    emoji: ' ',
-    // emoji: '🌿',
-    features: [
-      'Daily screen time tracking',
-      'Streak counter with goal',
-      'Gentle daily reminders',
-      'Social feed & friend progress',
-      '30-day consistency calendar',
-    ],
+    icon: 'leaf.fill',
   },
   {
     id: 'mid',
-    name: 'Mid Mode',
-    emoji: ' ',
-    // emoji: '🛡️',
-    features: [
-      'All Soft features',
-      'Warning screens on over-use',
-      'Per-app daily limits',
-      'Temporary app access cooldowns',
-      'Leaderboard & top user badge',
-    ],
+    icon: 'shield.fill',
   },
   {
     id: 'hardcore',
-    name: 'Hardcore Mode',
-    emoji: ' ',
-    // emoji: '🔥',
-    features: [
-      'All Mid features',
-      'Hard app locks — no override',
-      'Auto photos when staring too long',
-      'Photos shared to social feed',
-      'Emergency unlock only via friend',
-    ],
+    icon: 'flame.fill',
   },
 ];
 
@@ -80,7 +52,7 @@ export function ModeSelector() {
   const [pendingMode, setPendingMode] = useState<typeof MODES[0] | null>(null);
   return (
     <View style={styles.container}>
-      <ThemedText style={styles.sectionTitle}>App Mode</ThemedText>
+      <ThemedText style={styles.sectionTitle}>{t('settings.appMode')}</ThemedText>
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
         {MODES.map((item, index) => {
           const isActive = mode === item.id;
@@ -91,13 +63,19 @@ export function ModeSelector() {
                 onPress={() => setPendingMode(item)}
                 activeOpacity={0.7}
               >
-                <ThemedText style={styles.modeEmoji}>{item.emoji}</ThemedText>
+                <View style={[styles.iconContainer, { backgroundColor: colors.accent + '15' }]}>
+                  <IconSymbol name={item.icon} size={20} color={colors.accent} />
+                </View>
                 <View style={styles.modeInfo}>
                   <ThemedText style={[styles.modeText, isActive && { fontWeight: '700' }]}>
-                    {item.name}
+                    {t(`onboarding.${item.id}.name`)}
                   </ThemedText>
                   <ThemedText style={[styles.featureCount, { color: colors.textSecondary }]}>
-                    {item.features.length} features
+                    {(() => {
+                      const features = t(`onboarding.${item.id}.features`);
+                      const count = Array.isArray(features) ? features.length : 5;
+                      return t('settings.features', { n: count });
+                    })()}
                   </ThemedText>
                 </View>
                 {isActive && <IconSymbol name="checkmark.circle.fill" size={24} color={colors.accent} />}
@@ -118,11 +96,14 @@ export function ModeSelector() {
       >
         <Pressable style={styles.overlay} onPress={() => setPendingMode(null)}>
           <Pressable style={[styles.modal, { backgroundColor: colors.card }]} onPress={() => {}}>
-            <ThemedText style={styles.modalEmoji}>{pendingMode?.emoji}</ThemedText>
-            <ThemedText style={styles.modalTitle}>{pendingMode?.name}</ThemedText>
+            <View style={[styles.modalIconContainer, { backgroundColor: colors.accent + '15' }]}>
+              <IconSymbol name={pendingMode?.icon} size={40} color={colors.accent} />
+            </View>
+            <ThemedText style={styles.modalTitle}>{t(`onboarding.${pendingMode?.id}.name`)}</ThemedText>
 
             <View style={styles.featureList}>
-              {pendingMode?.features.map((f, i) => (
+              {pendingMode && Array.isArray(t(`onboarding.${pendingMode.id}.features`)) && 
+                (t(`onboarding.${pendingMode.id}.features`) as unknown as string[]).map((f, i) => (
                 <View key={i} style={styles.featureRow}>
                   <IconSymbol name="checkmark.circle.fill" size={16} color={colors.success} />
                   <ThemedText style={[styles.featureText, { color: colors.text }]}>{f}</ThemedText>
@@ -132,18 +113,20 @@ export function ModeSelector() {
 
             {mode === pendingMode?.id ? (
               <View style={[styles.activeChip, { backgroundColor: colors.success + '22' }]}>
-                <ThemedText style={{ color: colors.success, fontWeight: '600' }}>Currently active</ThemedText>
+                <ThemedText style={{ color: colors.success, fontWeight: '600' }}>{t('settings.currentlyActive')}</ThemedText>
               </View>
             ) : (
               <TouchableOpacity
                 style={[styles.confirmButton, { backgroundColor: colors.accent }]}
                 onPress={() => { setMode(pendingMode!.id); setPendingMode(null); }}
               >
-                <ThemedText style={styles.confirmText}>Switch to {pendingMode?.name}</ThemedText>
+                <ThemedText style={styles.confirmText}>
+                  {t('settings.switchTo', { mode: t(`onboarding.${pendingMode?.id}.name`) })}
+                </ThemedText>
               </TouchableOpacity>
             )}
             <TouchableOpacity style={styles.cancelButton} onPress={() => setPendingMode(null)}>
-              <ThemedText style={{ color: colors.textSecondary }}>Cancel</ThemedText>
+              <ThemedText style={{ color: colors.textSecondary }}>{t('common.cancel')}</ThemedText>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
@@ -173,7 +156,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 14,
   },
-  modeEmoji: { fontSize: 24 },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   modeInfo: { flex: 1 },
   modeText: { fontSize: 17 },
   featureCount: { fontSize: 12, marginTop: 2 },
@@ -255,7 +244,14 @@ const styles = StyleSheet.create({
     gap: 12,
     alignItems: 'center',
   },
-  modalEmoji: { fontSize: 44, marginBottom: 4 },
+  modalIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   modalTitle: { fontSize: 24, fontWeight: '700' },
   featureList: { width: '100%', gap: 10, marginVertical: 8 },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
