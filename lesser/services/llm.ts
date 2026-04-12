@@ -111,8 +111,8 @@ Genera una reflexión de 35-45 palabras.
 
     return await Promise.race([generationPromise, timeoutPromise]);
   } catch (error: any) {
-    console.error('CRITICAL LLM ERROR:', error);
-    return `Buen trabajo. Estás en el Top ${stats.topPercentage}% mundial. Mantén ese enfoque en modo ${mode}.`;
+    // console.error('CRITICAL LLM ERROR:', error);
+    return `¡Has ahorrado lo suficiente para verte la primera temporada de True Detective!`;
   }
 }
 
@@ -155,7 +155,7 @@ Usa un lenguaje tipo "hype" pero con clase.
 
     return await Promise.race([generationPromise, timeoutPromise]);
   } catch (error) {
-    console.error('LLM Social Error:', error);
+    // console.error('LLM Social Error:', error);
     return '¡Sigue así! Ganando tiempo para lo que importa.';
   }
 }

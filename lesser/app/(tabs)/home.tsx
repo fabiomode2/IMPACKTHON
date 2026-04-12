@@ -8,8 +8,6 @@ import React, { useEffect } from 'react';
 import { ActivityIndicator, AppState, NativeModules, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { GithubCalendar } from '@/components/home/GithubCalendar';
-import { MostUsedApps } from '@/components/home/MostUsedApps';
 import { StreakCounter } from '@/components/home/StreakCounter';
 import { TopUsersBadge } from '@/components/home/TopUsersBadge';
 import { UsageHoursCounter } from '@/components/home/UsageHoursCounter';
@@ -166,42 +164,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Permission Request Banner */}
-        {!hasUsagePerm && (
-          <TouchableOpacity
-            style={[styles.section, { backgroundColor: colors.accent + '20', borderColor: colors.accent }]}
-            onPress={() => requestPermission()}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <IconSymbol name="exclamationmark.triangle.fill" size={24} color={colors.accent} />
-              <View style={{ flex: 1 }}>
-                <ThemedText style={{ fontWeight: 'bold', color: colors.text }}>Activar Estadísticas</ThemedText>
-                <ThemedText style={{ fontSize: 13, color: colors.textSecondary }}>
-                  Lesser necesita "Acceso de uso" para medir tu tiempo de pantalla. Toca aquí para activarlo en Ajustes.
-                </ThemedText>
-              </View>
-            </View>
-          </TouchableOpacity>
-        )}
 
-        {/* AI Motivational Reserved Space */}
-        <View style={[styles.aiCard, { backgroundColor: colors.card, borderColor: aiMessage ? colors.accent + '30' : colors.border }]}>
-          <View style={styles.aiHeader}>
-            <View style={[styles.aiIconContainer, { backgroundColor: colors.accent + '20' }]}>
-              <IconSymbol name="sparkles" size={14} color={colors.accent} />
-            </View>
-            <ThemedText style={[styles.aiTitle, { color: colors.accent }]}>Lesser AI Insight</ThemedText>
-            {!aiMessage && <ActivityIndicator size="small" color={colors.accent} />}
-          </View>
-          {aiMessage ? (
-            <ThemedText style={styles.aiContent}>{aiMessage}</ThemedText>
-          ) : (
-            <View style={styles.aiSkeletonContainer}>
-              <View style={[styles.aiSkeleton, { width: '90%' }]} />
-              <View style={[styles.aiSkeleton, { width: '40%' }]} />
-            </View>
-          )}
-        </View>
 
         {/* Streak */}
         <StreakCounter days={streakDays} />
@@ -222,6 +185,41 @@ export default function HomeScreen() {
           </View>
         )}
 
+
+        {/* Permission Request Banner */}
+        {!hasUsagePerm && (
+          <TouchableOpacity
+            style={[styles.section, { backgroundColor: colors.accent + '20', borderColor: colors.accent }]}
+            onPress={() => requestPermission()}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <IconSymbol name="exclamationmark.triangle.fill" size={24} color={colors.accent} />
+              <View style={{ flex: 1 }}>
+                <ThemedText style={{ fontWeight: 'bold', color: colors.text }}>Activar Estadísticas</ThemedText>
+                <ThemedText style={{ fontSize: 13, color: colors.textSecondary }}>
+                  Lesser necesita "Acceso de uso" para medir tu tiempo de pantalla. Toca aquí para activarlo en Ajustes.
+                </ThemedText>
+              </View>
+            </View>
+          </TouchableOpacity>
+        )}
+
+
+        {/* AI Motivational Reserved Space */}
+        <View style={[styles.aiCard, { backgroundColor: colors.card, borderColor: aiMessage ? colors.accent + '30' : colors.border }]}>
+          <View style={styles.aiHeader}>
+            {!aiMessage && <ActivityIndicator size="small" color={colors.accent} />}
+          </View>
+          {aiMessage ? (
+            <ThemedText style={styles.aiContent}>{aiMessage}</ThemedText>
+          ) : (
+            <View style={styles.aiSkeletonContainer}>
+              <View style={[styles.aiSkeleton, { width: '90%' }]} />
+              <View style={[styles.aiSkeleton, { width: '40%' }]} />
+            </View>
+          )}
+        </View>
+
         {/* Usage hours — cycling taps, no navigation */}
         <UsageHoursCounter
           hours24h={hasUsagePerm ? realUsageHours24h : usageHours24h}
@@ -233,60 +231,6 @@ export default function HomeScreen() {
         {/* Top users badge */}
         <TopUsersBadge percentage={topPercentage} />
 
-        {/* Time Saved — taps go to stats */}
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={() => router.push('/stats')}
-          style={[styles.savingsCard, { backgroundColor: colors.accent }]}
-        >
-          <View style={styles.savingsHeader}>
-            <IconSymbol name="bolt.fill" size={16} color="rgba(255,255,255,0.85)" />
-            <ThemedText style={styles.savingsTitle}>{t('home.timeSaved')}</ThemedText>
-          </View>
-          <View style={styles.savingsRow}>
-            <View style={styles.savingsItem}>
-              <ThemedText style={styles.savingsValue}>{savedToday.toFixed(1)}h</ThemedText>
-              <ThemedText style={styles.savingsLabel}>{t('home.timeSavedToday')}</ThemedText>
-            </View>
-            <View style={styles.savingsDivider} />
-            <View style={styles.savingsItem}>
-              <ThemedText style={styles.savingsValue}>{savedWeek.toFixed(1)}h</ThemedText>
-              <ThemedText style={styles.savingsLabel}>{t('home.timeSavedWeek')}</ThemedText>
-            </View>
-            <View style={styles.savingsDivider} />
-            <View style={styles.savingsItem}>
-              <ThemedText style={styles.savingsValue}>{savedMonth.toFixed(0)}h</ThemedText>
-              <ThemedText style={styles.savingsLabel}>{t('home.timeSavedMonth')}</ThemedText>
-            </View>
-          </View>
-          <ThemedText style={styles.savingsComparison}>
-            {t('home.timeSavedComparison', { what: getSavingsText(savedWeek) })}
-          </ThemedText>
-        </TouchableOpacity>
-
-        {/* Calendar — taps go to stats */}
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={() => router.push('/stats')}
-          style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}
-        >
-          <GithubCalendar data={calendarData} />
-        </TouchableOpacity>
-
-        {/* Most used apps */}
-        <MostUsedApps apps={mostUsedApps} />
-
-        {/* Live Active Timer */}
-        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border, marginTop: 4, alignItems: 'center' }]}>
-          <IconSymbol name="timer" size={24} color={colors.accent} style={{ marginBottom: 4 }} />
-          <ThemedText style={{ fontSize: 14, color: colors.textSecondary }}>Live App Active Time</ThemedText>
-          <ThemedText style={{ fontSize: 34, fontWeight: '800', color: colors.text, marginVertical: 4 }}>
-            {formattedTime}
-          </ThemedText>
-          <ThemedText style={{ fontSize: 12, color: colors.textSecondary }}>
-            {activeTimeHours.toFixed(4)}h / 6.0000h max
-          </ThemedText>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
