@@ -16,6 +16,7 @@ import {
 export type { Mode };
 
 const ONBOARDED_KEY = '@lesser:isOnboarded';
+const MODE_KEY       = '@lesser:mode';
 
 interface AuthState {
   isOnboarded: boolean;
@@ -45,10 +46,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [mode, setModeState] = useState<Mode>('mid');
   const [user, setUser] = useState<UserProfile | null>(null);
 
-  // Load persisted onboarding flag from AsyncStorage on mount
+  // Load persisted onboarding flag and mode from AsyncStorage on mount
   useEffect(() => {
-    AsyncStorage.getItem(ONBOARDED_KEY).then((value) => {
-      if (value === 'true') setIsOnboarded(true);
+    AsyncStorage.multiGet([ONBOARDED_KEY, MODE_KEY]).then((pairs) => {
+      const onboarded = pairs[0][1];
+      const savedMode = pairs[1][1] as Mode | null;
+      if (onboarded === 'true') setIsOnboarded(true);
+      if (savedMode) setModeState(savedMode);
     });
   }, []);
 
@@ -74,9 +78,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setModeState(profile.mode);
             setIsLoggedIn(true);
             setAuthCompleted(true);
-            // Persist onboarded state so it survives app restarts
+            // Persist onboarded state and mode so they survive app restarts
             setIsOnboarded(true);
-            AsyncStorage.setItem(ONBOARDED_KEY, 'true');
+            AsyncStorage.multiSet([
+              [ONBOARDED_KEY, 'true'],
+              [MODE_KEY, profile.mode],
+            ]);
           } else {
             // Document doesn't exist yet (e.g. registration failed mid-way or ghost auth)
             setUser(null);
@@ -103,8 +110,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const completeOnboarding = (selectedMode: Mode) => {
     setModeState(selectedMode);
     setIsOnboarded(true);
-    // Persist so the app doesn't show onboarding again on next launch
-    AsyncStorage.setItem(ONBOARDED_KEY, 'true');
+    // Persist both flags so the app doesn't show onboarding again on next launch
+    AsyncStorage.multiSet([
+      [ONBOARDED_KEY, 'true'],
+      [MODE_KEY, selectedMode],
+    ]);
   };
 
   const login = async (username: string, password: string): Promise<boolean> => {
@@ -151,7 +161,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const result = await updateUserProfile(user.uid, data);
       if (result.success && result.user) {
         setUser(result.user);
-        if (data.mode) setModeState(data.mode);
+        if (data.mode) {
+          setModeState(data.mode);
+          // Persist mode change locally
+          AsyncStorage.setItem(MODE_KEY, data.mode);
+        }
         return true;
       }
       setLastError(result.error ?? 'Error al actualizar perfil');
@@ -172,6 +186,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const setMode = (newMode: Mode) => {
     setModeState(newMode);
+    // Persist immediately so the mode is available even before the RTDB write resolves
+    AsyncStorage.setItem(MODE_KEY, newMode);
     if (user) updateProfile({ mode: newMode });
   };
 
