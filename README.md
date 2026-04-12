@@ -29,7 +29,7 @@
 | **Calendario de uso** | Visualiza tu actividad diaria con un mapa de calor al estilo GitHub. |
 | **Autenticación con Firebase** | Inicio de sesión seguro con usuario y contraseña. |
 | **Modo oscuro** | Cambio automático entre modo claro y oscuro. |
-| **3 modos de desafío** | Elige entre Soft, Mid o Hardcore según el nivel que quieras. |
+| **3 modos de desafío** | Elige entre Soft , Mid o Hardcore según el nivel que quieras. |
 | **Seguridad lista para producción** | Protección reforzada con Firebase y Cloud Functions. |
 
 ---
@@ -126,8 +126,11 @@ cp .env.example .env
 ```bash
 npm run start          # Inicia el servidor de desarrollo de Expo
 npm run android        # Abre el emulador de Android
-npm run ios            # Abre el simulador de iOS (solo en macOS)
 ```
+
+---
+
+## Backend — Configuración de Firebase
 
 ### Desplegar reglas e índices de Firestore
 
@@ -136,6 +139,18 @@ cd backend
 firebase login
 firebase deploy --only firestore
 ```
+
+## Arquitectura de seguridad
+
+### Reglas de seguridad de Firestore
+
+| Colección | Lectura | Escritura |
+|---|---|---|
+| `/users/{uid}` | Cualquier usuario autenticado | Solo el propietario |
+| `/users/{uid}/followers/*` | Cualquier usuario autenticado | Solo Cloud Functions |
+| `/users/{uid}/following/*` | Cualquier usuario autenticado | Solo el propietario |
+| `/feedPosts/{postId}` | Cualquier usuario autenticado | El autor (crear/eliminar) |
+
 
 ## 🌍 Internacionalización
 
