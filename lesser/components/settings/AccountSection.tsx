@@ -16,7 +16,7 @@ export function AccountSection() {
   const { username, isLoggedIn, logout, mode } = useAuth();
   const router = useRouter();
 
-  const displayUsername = username || 'Guest';
+  const displayUsername = username || t('home.greetingGuest');
 
   const handleLogout = async () => {
     await logout();
@@ -47,7 +47,7 @@ export function AccountSection() {
           </View>
           <View style={[styles.modePill, { backgroundColor: colors.accent + '22' }]}>
             <ThemedText style={[styles.modeText, { color: colors.accent }]}>
-              {mode === 'soft' ? '🌿' : mode === 'mid' ? '🛡️' : '🔥'} {mode}
+              {t(`onboarding.${mode}.name`)}
             </ThemedText>
           </View>
         </View>
@@ -69,11 +69,12 @@ export function AccountSection() {
             </TouchableOpacity>
           </>
         ) : (
-          <TouchableOpacity style={styles.actionRow} onPress={() => router.replace('/auth')}>
+            <TouchableOpacity style={styles.actionRow} onPress={() => router.replace('/auth')}>
             <IconSymbol name="person.fill" size={20} color={colors.accent} />
             <ThemedText style={[styles.actionText, { color: colors.accent }]}>{t('settings.logIn')}</ThemedText>
           </TouchableOpacity>
         )}
+
 
       </View>
     </View>

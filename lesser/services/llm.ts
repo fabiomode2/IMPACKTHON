@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { t } from '@/constants/i18n';
 
 /**
  * BEST PRACTICES IMPLEMENTATION (2025/2026 Standards)
@@ -19,7 +20,7 @@ const createModel = (systemInstruction: string) => {
 
   const genAI = new GoogleGenerativeAI(apiKey);
   return genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-2.0-flash',
     systemInstruction,
     generationConfig: {
       temperature: 0.8,
@@ -51,23 +52,14 @@ export async function generateMotivationalMessage(
   },
   appUsages: { name: string; minutes: number }[]
 ): Promise<string> {
-  const systemInstruction = `
-### ROLE
-Eres un Analista de Bienestar Digital de élite y Coach de Productividad para la aplicación 'Lesser'.
-
-### OBJECTIVE
-Analizar los datos reales de uso de móvil del usuario y proporcionar un diagnóstico motivador, profesional y basado en datos.
-
-### TONE & STYLE
-- Profesional, elegante y empoderador.
-- Usa un lenguaje sofisticado pero accesible (Español de España).
-- Evita clichés aburridos; busca comparaciones intelectuales potentes.
-- Sin hashtags. Emojis mínimos (máximo 1).
-`;
+  const systemInstruction = t('ai.systemInstructionMotivational');
 
   const model = createModel(systemInstruction);
   if (!model) {
-    return `Análisis: Top ${stats.topPercentage}% con ${stats.savedHoursWeek.toFixed(1)}h ahorradas. ¡Tu disciplina es real!`;
+    return t('ai.fallbackMotivational', { 
+      pct: stats.topPercentage, 
+      saved: stats.savedHoursWeek.toFixed(1) 
+    });
   }
 
   try {
@@ -75,29 +67,16 @@ Analizar los datos reales de uso de móvil del usuario y proporcionar un diagnó
       .map((app) => `<app name="${app.name}" minutes="${app.minutes}" />`)
       .join('\n');
 
-    const prompt = `
-### USER DATA
-<context>
-  <username>${username}</username>
-  <mode>${mode}</mode>
-  <streak>${stats.streakDays} días</streak>
-  <usage_24h>${stats.usageHours24h.toFixed(1)}h</usage_24h>
-  <daily_goal>${stats.goalHours}h</daily_goal>
-  <saved_week>${stats.savedHoursWeek.toFixed(1)}h</saved_week>
-  <ranking>Top ${stats.topPercentage}%</ranking>
-</context>
-
-### APP DETAILS
-<app_usages>
-${appsXml}
-</app_usages>
-
-### TASK
-Genera una reflexión de 35-45 palabras. 
-1. Analiza si ha cumplido su meta técnica (${stats.usageHours24h.toFixed(1)}h vs ${stats.goalHours}h).
-2. Menciona una app específica del listado.
-3. Compara el ahorro semanal con una actividad de alto valor intelectual o recreativa.
-`;
+    const prompt = t('ai.promptMotivational', {
+      username,
+      mode: t(`onboarding.${mode}.name`),
+      streak: stats.streakDays,
+      usage24h: stats.usageHours24h.toFixed(1),
+      goal: stats.goalHours,
+      savedWeek: stats.savedHoursWeek.toFixed(1),
+      ranking: stats.topPercentage,
+      appsXml,
+    });
 
     const timeoutMs = 20000;
     const timeoutPromise = new Promise<string>((_, reject) =>
@@ -111,8 +90,7 @@ Genera una reflexión de 35-45 palabras.
 
     return await Promise.race([generationPromise, timeoutPromise]);
   } catch (error: any) {
-    console.error('CRITICAL LLM ERROR:', error);
-    return `Buen trabajo. Estás en el Top ${stats.topPercentage}% mundial. Mantén ese enfoque en modo ${mode}.`;
+    return t('ai.fallbackSocial'); 
   }
 }
 
@@ -124,25 +102,17 @@ export async function generateFriendSupportMessage(
   achievementType: 'STREAK' | 'USAGE_REDUCTION' | 'TOP_RANK',
   value: number
 ): Promise<string> {
-  const systemInstruction = `
-### ROLE
-Eres una comunidad de apoyo ultra-positiva y moderna. 
-
-### TASK
-Tu objetivo es animar a un amigo que ha logrado un hito de desintoxicación digital.
-Usa un lenguaje tipo "hype" pero con clase. 
-
-### CONSTRAINTS
-- Español de España.
-- Máximo 15 palabras.
-- Enfoque en el valor del tiempo ganado.
-`;
+  const systemInstruction = t('ai.systemInstructionSocial');
 
   const model = createModel(systemInstruction);
-  if (!model) return '¡Increíble progreso! El tiempo que recuperas hoy es la libertad del mañana.';
+  if (!model) return t('ai.fallbackSocial');
 
   try {
-    const prompt = `Felicita a <friend>${friendName}</friend> por su logro de <type>${achievementType}</type> con valor de <value>${value}</value>.`;
+    const prompt = t('ai.promptSocial', {
+      friendName,
+      type: achievementType,
+      value,
+    });
 
     const timeoutPromise = new Promise<string>((_, reject) =>
       setTimeout(() => reject(new Error('TIMEOUT')), 12000)
@@ -155,7 +125,6 @@ Usa un lenguaje tipo "hype" pero con clase.
 
     return await Promise.race([generationPromise, timeoutPromise]);
   } catch (error) {
-    console.error('LLM Social Error:', error);
-    return '¡Sigue así! Ganando tiempo para lo que importa.';
+    return t('ai.fallbackSocial');
   }
 }

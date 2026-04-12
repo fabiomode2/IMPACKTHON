@@ -13,6 +13,7 @@ import { silentNudgeService } from '@/services/silentNudgeService';
 import { fetchSettings } from '@/services/settings';
 import { auth as firebaseAuth } from '@/services/firebase';
 import { Platform } from 'react-native';
+import { t } from '@/constants/i18n';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -83,8 +84,8 @@ function RootLayoutNav() {
         <Stack.Screen name="friend/[uid]" options={{ headerShown: false, animation: 'ios_from_right' }} />
         <Stack.Screen name="followers" options={{ headerShown: false, animation: 'ios_from_right' }} />
         <Stack.Screen name="+not-found" options={{ headerShown: false }} />
-        <Stack.Screen name="delete-account" options={{ title: 'Eliminar Cuenta', animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+        <Stack.Screen name="delete-account" options={{ title: t('settings.deleteAccountTitle'), animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="modal" options={{ presentation: 'modal', title: t('common.tapToChange').replace(' →', '') }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

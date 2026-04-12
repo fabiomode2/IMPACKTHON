@@ -1,8 +1,8 @@
 import React from 'react';
-import { StyleSheet, ScrollView, SafeAreaView, View } from 'react-native';
+import { StyleSheet, ScrollView, View } from 'react-native';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 
 import { AccountSection } from '@/components/settings/AccountSection';
 import { ModeSelector } from '@/components/settings/ModeSelector';
@@ -11,6 +11,7 @@ import { WhitelistSection } from '@/components/settings/WhitelistSection';
 import { DebugSection } from '@/components/settings/DebugSection';
 import { ThemedText } from '@/components/themed-text';
 import { t } from '@/constants/i18n';
+import { GoalSection } from '@/components/settings/GoalSection';
 
 export default function SettingsScreen() {
   const theme = useColorScheme() ?? 'light';
@@ -25,6 +26,7 @@ export default function SettingsScreen() {
         </View>
 
         <AccountSection />
+        <GoalSection />
         <ModeSelector />
         <WellbeingSection />
         <WhitelistSection />

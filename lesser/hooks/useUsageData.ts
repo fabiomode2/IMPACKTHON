@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { subscribeToUsageData, UsageSummary } from '@/services/usage';
+import { subscribeToUsageData, UsageStats } from '@/services/usage';
 
 export function useUsageData(uid: string | null | undefined) {
-  const [data, setData] = useState<UsageSummary | null>(null);
+  const [data, setData] = useState<UsageStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

@@ -34,7 +34,7 @@
 
 ---
 
-## 🗂 Estructura del repositorio
+## Estructura del repositorio
 
 ```bash
 IMPACKTHON/

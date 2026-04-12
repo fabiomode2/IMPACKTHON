@@ -11,22 +11,31 @@
  */
 
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { initializeAuth, getReactNativePersistence, getAuth } from 'firebase/auth';
+import { 
+  initializeAuth, 
+  // @ts-expect-error: getReactNativePersistence is not exported from the web index, but exists in the react-native build
+  getReactNativePersistence, 
+  getAuth 
+} from 'firebase/auth';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 import { getFirestore } from 'firebase/firestore';
 import { getFunctions } from 'firebase/functions';
 import { getDatabase } from 'firebase/database';
 import { FIREBASE_CONFIG } from '@/constants/firebase.config';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const app = getApps().length === 0 ? initializeApp(FIREBASE_CONFIG) : getApp();
 
-// Configure Auth with AsyncStorage persistence to fix warning and support session persistence
-export const auth = getApps().length === 0 
-  ? initializeAuth(app, {
-      persistence: getReactNativePersistence(ReactNativeAsyncStorage),
-    }) 
-  : getAuth(app);
+// Correctly initialize Auth with persistence only once
+let authInstance;
+try {
+  authInstance = getAuth(app);
+} catch (e) {
+  authInstance = initializeAuth(app, {
+    persistence: getReactNativePersistence(ReactNativeAsyncStorage),
+  });
+}
+
+export const auth = authInstance;
 
 export const db        = getFirestore(app);
 export const functions = getFunctions(app, 'europe-west1'); // eur3 region

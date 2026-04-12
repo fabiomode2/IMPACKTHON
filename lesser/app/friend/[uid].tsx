@@ -1,21 +1,37 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import {
-  View, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Dimensions, ActivityIndicator, Share,
-} from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { t } from '@/constants/i18n';
-import { getUserProfile, Friend } from '@/services/social';
-import { fetchUsageStats, UsageStats } from '@/services/usage';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/useAuth';
 import { useSocial } from '@/hooks/useSocial';
+import { Friend, getUserProfile } from '@/services/social';
+import { fetchUsageStats, UsageStats } from '@/services/usage';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  SafeAreaView,
+  ScrollView,
+  Share,
+  StyleSheet,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const BAR_MAX_HEIGHT = 100;
-const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+function getDays() {
+  return [
+    t('stats.days.mon').charAt(0),
+    t('stats.days.tue').charAt(0),
+    t('stats.days.wed').charAt(0),
+    t('stats.days.thu').charAt(0),
+    t('stats.days.fri').charAt(0),
+    t('stats.days.sat').charAt(0),
+    t('stats.days.sun').charAt(0),
+  ];
+}
 
 export default function FriendProfileScreen() {
   const router = useRouter();
@@ -72,7 +88,7 @@ export default function FriendProfileScreen() {
     try {
       const profileLink = `https://lesser.app/profile/${profile.username}`;
       await Share.share({
-        message: `Mira el progreso de @${profile.username} en Lesser. ¡Seamos más disciplinados juntos! ${profileLink}`,
+        message: t('stats.shareMessageFriend', { username: profile.username, link: profileLink }),
         url: profileLink,
       });
     } catch (e) {
@@ -97,7 +113,7 @@ export default function FriendProfileScreen() {
           <IconSymbol name="chevron.left" size={22} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ThemedText style={{ color: colors.textSecondary }}>{t('social.profileNotFound') || 'Perífil no encontrado'}</ThemedText>
+          <ThemedText style={{ color: colors.textSecondary }}>{t('common.error')}</ThemedText>
         </View>
       </SafeAreaView>
     );
@@ -112,7 +128,7 @@ export default function FriendProfileScreen() {
       <View style={styles.header}>
         <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.card }]} onPress={() => router.back()}>
           <IconSymbol name="chevron.left" size={22} color={colors.text} />
-          <ThemedText style={{ fontWeight: '600' }}>Volver</ThemedText>
+          <ThemedText style={{ fontWeight: '600' }}>{t('common.back')}</ThemedText>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.shareBtn, { backgroundColor: colors.card }]} onPress={handleShare}>
           <IconSymbol name="square.and.arrow.up" size={20} color={colors.accent} />
@@ -130,7 +146,7 @@ export default function FriendProfileScreen() {
           </View>
           <ThemedText style={styles.profileName}>@{profile.username}</ThemedText>
           <ThemedText style={[styles.profileSub, { color: colors.textSecondary }]}>
-            🔥 {profile.streakDays} días de racha · Top {friendStats.topPercentage}% de usuarios
+            {t('friendProfile.streak', { days: profile.streakDays })} · {t('friendProfile.rank', { pct: friendStats.topPercentage })}
           </ThemedText>
           <TouchableOpacity
             style={[
@@ -152,18 +168,18 @@ export default function FriendProfileScreen() {
         <View style={[styles.vsCard, { backgroundColor: isBetter ? colors.success + '22' : colors.error + '22', borderColor: isBetter ? colors.success : colors.error }]}>
           <ThemedText style={[styles.vsText, { color: isBetter ? colors.success : colors.error }]}>
             {isBetter
-              ? `Usas ${(friendAvg - myAvg).toFixed(1)}h menos por día que ${profile.username} 🏆`
-              : `${profile.username} usa ${(myAvg - friendAvg).toFixed(1)}h menos por día que tú 💪`}
+              ? t('friendProfile.youBetter', { diff: (friendAvg - myAvg).toFixed(1), name: profile.username })
+              : t('friendProfile.theyBetter', { diff: (myAvg - friendAvg).toFixed(1), name: profile.username })}
           </ThemedText>
         </View>
 
         {/* Stats comparison table */}
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <ThemedText style={styles.chartTitle}>Frente a Frente</ThemedText>
+          <ThemedText style={styles.chartTitle}>{t('friendProfile.headToHead')}</ThemedText>
           {[
-            { label: 'Uso diario medio', mine: `${myAvg.toFixed(1)}h`, theirs: `${friendAvg.toFixed(1)}h`, mineWins: myAvg < friendAvg },
-            { label: 'Racha', mine: `${myStats?.streakDays ?? 0} días`, theirs: `${profile.streakDays} días`, mineWins: (myStats?.streakDays ?? 0) >= profile.streakDays },
-            { label: 'Ranking', mine: `Top ${myStats?.topPercentage ?? 50}%`, theirs: `Top ${friendStats.topPercentage}%`, mineWins: (myStats?.topPercentage ?? 50) <= friendStats.topPercentage },
+            { label: t('friendProfile.avgDaily'), mine: `${myAvg.toFixed(1)}h`, theirs: `${friendAvg.toFixed(1)}h`, mineWins: myAvg < friendAvg },
+            { label: t('friendProfile.streakLabel'), mine: t('home.streakDays', { count: myStats?.streakDays ?? 0 }), theirs: t('home.streakDays', { count: profile.streakDays }), mineWins: (myStats?.streakDays ?? 0) >= profile.streakDays },
+            { label: t('friendProfile.rankLabel'), mine: t('friendProfile.topPercentage', { pct: myStats?.topPercentage ?? 50 }), theirs: t('friendProfile.topPercentage', { pct: friendStats.topPercentage }), mineWins: (myStats?.topPercentage ?? 50) <= friendStats.topPercentage },
           ].map((row, i) => (
             <View key={i} style={[styles.tableRow, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>
               <ThemedText style={[styles.tableCell, { color: row.mineWins ? colors.success : colors.text, fontWeight: row.mineWins ? '700' : '400' }]}>{row.mine}</ThemedText>

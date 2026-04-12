@@ -4,6 +4,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol, IconSymbolName } from '@/components/ui/icon-symbol';
+import { t } from '@/constants/i18n';
 
 interface AppUsage {
   name: string;
@@ -46,7 +47,7 @@ export function MostUsedApps({ apps }: MostUsedAppsProps) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <ThemedText style={styles.title}>Most Used (7 Days)</ThemedText>
+      <ThemedText style={styles.title}>{t('home.mostUsedApps')}</ThemedText>
       <View style={styles.list}>
         {apps.map((app, idx) => (
           <View key={idx}>

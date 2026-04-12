@@ -33,12 +33,13 @@ class ExpoAppUsageModule : Module() {
       }
     }
 
-    Function("requestPermission") {
-      val context = appContext.reactContext ?: return@Function
+  Function("requestPermission") {
+    appContext.reactContext?.let { context ->
       val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
       intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
       context.startActivity(intent)
     }
+  }
 
     Function("getDailyUsageStats") {
       val context = appContext.reactContext ?: return@Function emptyMap<String, Any>()

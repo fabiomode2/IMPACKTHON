@@ -35,6 +35,13 @@ const en = {
     sixMonths: '6 months',
     year: '1 year',
     tapToChange: 'Tap to change →',
+    close: 'Close',
+    justNow: 'Just now',
+    now: 'Now',
+    agoMinutes: '{{n}}m ago',
+    agoHours: '{{n}}h ago',
+    agoDays: '{{n}}d ago',
+    guest: 'Stranger',
   },
 
   // ── Onboarding ──────────────────────────────────────────
@@ -86,20 +93,35 @@ const en = {
     registerTitle: 'Create Account',
     loginSubtitle: 'Log in to sync your reduction progress with friends.',
     registerSubtitle: 'Sign up to connect with friends and compete.',
-    usernamePlaceholder: 'Username',
-    passwordPlaceholder: 'Password',
-    password: 'Password',
+    usernameLabel: 'Username',
+    usernamePlaceholder: '',
+    passwordLabel: 'Password',
+    passwordPlaceholder: '',
     loginButton: 'Log In',
     registerButton: 'Sign Up',
-    switchToRegister: "Don't have an account? Sign up",
-    switchToLogin: 'Already have an account? Log in',
+    switchToRegister: "Don't have an account? ",
+    switchToLogin: 'Already have an account? ',
     skipButton: 'Skip for now',
     fillAllFields: 'Please fill in all fields.',
     genericError: 'Something went wrong. Please try again.',
+    errorUsernameShort: 'Username must be at least 3 characters.',
+    errorUsernameInvalid: 'Username can only contain letters, numbers, and underscores.',
+    errorUsernameTaken: 'This username is already taken.',
+    errorPasswordShort: 'Password must be at least 6 characters.',
+    errorUserNotFound: 'User not found.',
+    errorWrongPassword: 'Incorrect password.',
+    errorInvalidCredential: 'Invalid credentials.',
+    errorTooManyRequests: 'Too many attempts. Please try again later.',
+    errorNetworkFailed: 'Network error. Please check your connection.',
+    errorRecentLogin: 'Please log out and log in again before this action.',
+    errorInvalidEmail: 'Invalid username format.',
+    errorPermissionDenied: 'Permission denied.',
   },
 
   // ── Home ────────────────────────────────────────────────
   home: {
+    title: 'Home',
+    stats: 'Statistics',
     greeting: 'Good job,',
     greetingGuest: 'Stranger',
     statsButton: 'Stats',
@@ -141,6 +163,8 @@ const en = {
     usagePermissionTitle: 'App Usage Access Required',
     usagePermissionDesc: 'To display your real usage statistics, Lesser needs permission to read Android usage history.',
     grantPermissionBtn: 'Grant Permission',
+    activateStats: 'Activate Statistics',
+    activateStatsDesc: 'Lesser needs "Usage Access" to measure your screen time. Tap here to enable it in Settings.',
   },
 
   // ── Social ──────────────────────────────────────────────
@@ -162,6 +186,8 @@ const en = {
     feed: 'Activity Feed',
     streakBadge: '{{days}}d streak',
     noFriends: 'No friends yet. Add some!',
+    mockMessage: 'Keeping the focus at max.',
+    agoHours: '{{n}} hours ago',
   },
 
   // ── Friend Profile ───────────────────────────────────────
@@ -176,6 +202,7 @@ const en = {
     avgDaily: 'Avg daily usage',
     streakLabel: 'Streak',
     rankLabel: 'Ranking',
+    topPercentage: 'Top {{pct}}%',
   },
 
   // ── Stats ───────────────────────────────────────────────
@@ -199,14 +226,20 @@ const en = {
     vsUsers: 'vs users',
     tapToCycle: 'Tap to cycle →',
     days: {
-      mon: 'Mon',
-      tue: 'Tue',
-      wed: 'Wed',
-      thu: 'Thu',
-      fri: 'Fri',
-      sat: 'Sat',
-      sun: 'Sun',
+      mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat', sun: 'Sun',
     },
+    invite: 'Invite',
+    shareTitle: 'Share your progress',
+    shareSubtitle: 'Invite others to follow your streak and get motivated together.',
+    sendWhatsApp: 'Send via WhatsApp / More',
+    copied: 'Copied!',
+    followers: 'Followers',
+    following: 'Following',
+    sharePopupTitleNative: 'Share Lesser Profile',
+    shareMessageNative: 'Join my challenge on Lesser! Follow me to see my progress reducing screen time: {{link}}',
+    shareMessageFriend: 'Check out @{{username}}\'s progress on Lesser. Let\'s be disciplined together! {{link}}',
+    weekLabel: 'W{{n}}',
+    resultsFound: '{{count}} results',
   },
 
 
@@ -220,6 +253,8 @@ const en = {
     countSummary: '{{count}} {{noun}} · {{following}} following',
     noFollowers: 'No followers yet.',
     noResults: 'No results found.',
+    searching: 'Searching...',
+    noFollowing: 'Not following anyone yet.',
   },
 
   // ── Settings ─────────────────────────────────────────────
@@ -249,6 +284,29 @@ const en = {
     usageThreshold: 'Usage Threshold',
     usageThresholdMinutes: '{{minutes}} minutes',
     usageThresholdInfo: 'Starts nudging after this many minutes of foreground app use.',
+    language: 'Language',
+    english: 'English',
+    spanish: 'Spanish',
+    goal: 'Daily Goal',
+    timeLimit: 'Time Limit',
+    adjustGoal: 'Adjust your goal (affects streak)',
+    whitelistTitle: 'Whitelisted Apps',
+    whitelistHelper: 'These apps will not be affected by screen time limitations.',
+    deleteConfirmTitle: 'Final Confirmation',
+    deleteConfirmDesc: 'This action CANNOT be undone. Your followers, following, posts and profile will be deleted forever.',
+    deletePermanently: 'DELETE PERMANENTLY',
+    deleteSureTitle: 'Are you sure?',
+    deleteSureSubtitle: 'This action will permanently delete all your presence in Lesser.',
+    deleteLoseTitle: 'You will lose forever:',
+    deleteLose1: 'Your profile and username',
+    deleteLose2: 'All your followers and following',
+    deleteLose3: 'All your activity history and posts',
+    deleteLose4: 'Statistics comparisons with friends',
+    deleteLabelPassword: 'Confirm Password',
+    deletePlaceholderPassword: 'Write your password',
+    deleteLabelConfirmText: 'Type {{text}}',
+    deleteConfirmValue: 'DELETE MY ACCOUNT',
+    deleteCancel: 'Not now, go back',
   },
   wellbeing: {
     title: 'Digital Wellbeing',
@@ -258,6 +316,61 @@ const en = {
     disableVpn: 'Disable Slow Mode',
     currentDelay: 'Current delay: {{ms}}ms',
     delayDescription: 'The artificial lag currently applied to network requests.',
+  },
+  // ── AI ──────────────────────────────────────────────────
+  ai: {
+    systemInstructionMotivational: `
+### ROLE
+You are an elite Digital Wellbeing Analyst and Productivity Coach for the 'Lesser' app.
+
+### OBJECTIVE
+Analyze the user's real phone usage data and provide a motivating, professional, and data-driven diagnosis.
+
+### TONE & STYLE
+- Professional, elegant, and empowering.
+- Use sophisticated but accessible language.
+- Avoid boring clichés; look for powerful intellectual comparisons.
+- No hashtags. Minimal emojis (max 1).
+`,
+    systemInstructionSocial: `
+### ROLE
+You are an ultra-positive and modern support community. 
+
+### TASK
+Your goal is to encourage a friend who has achieved a digital detox milestone.
+Use "hype" language but with class. 
+
+### CONSTRAINTS
+- English.
+- Maximum 15 words.
+- Focus on the value of time gained.
+`,
+    fallbackMotivational: 'Top {{pct}}% with {{saved}}h saved. Your discipline is real!',
+    fallbackSocial: 'Amazing progress! The time you reclaim today is the freedom of tomorrow.',
+    promptMotivational: `
+### USER DATA
+<context>
+  <username>{{username}}</username>
+  <mode>{{mode}}</mode>
+  <streak>{{streak}} days</streak>
+  <usage_24h>{{usage24h}}h</usage_24h>
+  <daily_goal>{{goal}}h</daily_goal>
+  <saved_week>{{savedWeek}}h</saved_week>
+  <ranking>Top {{ranking}}%</ranking>
+</context>
+
+### APP DETAILS
+<app_usages>
+{{appsXml}}
+</app_usages>
+
+### TASK
+Generate a reflection of 35-45 words. 
+1. Analyze if the technical goal of {{usage24h}}h vs {{goal}}h was met.
+2. Mention a specific app from the list.
+3. Compare the weekly savings with a high intellectual or recreational value activity.
+`,
+    promptSocial: `Congratulate <friend>{{friendName}}</friend> for their achievement of <type>{{type}}</type> with a value of <value>{{value}}</value>.`,
   },
 };
 
@@ -269,6 +382,37 @@ const es: Strings = {
     seeAll: 'Ver todo', today: 'Hoy', week: 'Esta semana', month: 'Este mes',
     sixMonths: '6 meses', year: '1 año',
     tapToChange: 'Toca para cambiar →',
+    close: 'Cerrar',
+    justNow: 'Justo ahora',
+    now: 'Ahora',
+    agoMinutes: 'Hace {{n}}m',
+    agoHours: 'Hace {{n}}h',
+    agoDays: 'Hace {{n}}d',
+    guest: 'Desconocido',
+  },
+  auth: {
+    loginTitle: 'Bienvenido de vuelta', registerTitle: 'Crear cuenta',
+    loginSubtitle: 'Inicia sesión para sincronizar tu progreso.', registerSubtitle: 'Regístrate para conectar con amigos.',
+    usernameLabel: 'Usuario',
+    usernamePlaceholder: '',
+    passwordLabel: 'Contraseña',
+    passwordPlaceholder: '',
+    loginButton: 'Iniciar sesión', registerButton: 'Registrarse',
+    switchToRegister: '¿No tienes cuenta? ', switchToLogin: '¿Ya tienes cuenta? ',
+    skipButton: 'Saltar por ahora', fillAllFields: 'Por favor rellena todos los campos.',
+    genericError: 'Algo salió mal. Inténtalo de nuevo.',
+    errorUsernameShort: 'El nombre de usuario debe tener al menos 3 caracteres.',
+    errorUsernameInvalid: 'El nombre de usuario solo puede contener letras, números y guiones bajos.',
+    errorUsernameTaken: 'Este nombre de usuario ya está ocupado.',
+    errorPasswordShort: 'La contraseña debe tener al menos 6 caracteres.',
+    errorUserNotFound: 'Usuario no encontrado.',
+    errorWrongPassword: 'Contraseña incorrecta.',
+    errorInvalidCredential: 'Credenciales inválidas.',
+    errorTooManyRequests: 'Demasiados intentos. Prueba más tarde.',
+    errorNetworkFailed: 'Error de red. Revisa tu conexión.',
+    errorRecentLogin: 'Cierra sesión e inicia de nuevo antes de esta acción.',
+    errorInvalidEmail: 'Nombre de usuario inválido.',
+    errorPermissionDenied: 'Error de permisos.',
   },
   onboarding: {
     title: 'Elige tu camino', subtitle: 'Toca un modo para seleccionarlo. Puedes cambiarlo en Ajustes.',
@@ -277,17 +421,9 @@ const es: Strings = {
     mid: { name: 'Medio', tagline: 'Reducción activa.', description: 'Bloqueos suaves cuando superas tu límite diario.', features: ['Todo lo de Suave', 'Pantallas de aviso', 'Límites por app', 'Enfriamientos de acceso', 'Tabla de clasificación'] },
     hardcore: { name: 'Extremo', tagline: 'Máxima aplicación.', description: 'Bloqueos duros y fotos automáticas si miras demasiado.', features: ['Todo lo de Medio', 'Bloqueos duros', 'Fotos automáticas', 'Fotos en el feed', 'Desbloqueo solo con amigo'] },
   },
-  auth: {
-    loginTitle: 'Bienvenido de vuelta', registerTitle: 'Crear cuenta',
-    loginSubtitle: 'Inicia sesión para sincronizar tu progreso.', registerSubtitle: 'Regístrate para conectar con amigos.',
-    usernamePlaceholder: 'Usuario', passwordPlaceholder: 'Contraseña',
-    password: 'Contraseña',
-    loginButton: 'Iniciar sesión', registerButton: 'Registrarse',
-    switchToRegister: '¿No tienes cuenta? Regístrate', switchToLogin: '¿Ya tienes cuenta? Inicia sesión',
-    skipButton: 'Saltar por ahora', fillAllFields: 'Por favor rellena todos los campos.',
-    genericError: 'Algo salió mal. Inténtalo de nuevo.',
-  },
   home: {
+    title: 'Inicio',
+    stats: 'Estadísticas',
     greeting: '¡Buen trabajo,', greetingGuest: 'Desconocido', statsButton: 'Estadísticas',
     streak: 'Racha actual', streakDays: '{{count}} días', streakDay: '1 día', streakGoal: 'cumpliendo el objetivo',
     badgeLegendary: 'Legendario 🏆', badgeFire: '¡En racha!', badgeGreat: '¡Muy bien!', badgeKeepUp: '¡Sigue así!',
@@ -303,6 +439,8 @@ const es: Strings = {
     usagePermissionTitle: 'Permiso de uso requerido',
     usagePermissionDesc: 'Para mostrar tus estadísticas reales de cada app, Lesser necesita permiso para leer el historial de uso de Android.',
     grantPermissionBtn: 'Conceder permiso',
+    activateStats: 'Activar Estadísticas',
+    activateStatsDesc: 'Lesser necesita "Acceso de uso" para medir tu tiempo de pantalla. Toca aquí para activarlo en Ajustes.',
   },
   social: {
     title: 'Social', shareProfile: 'Compartir perfil', shareCopied: '¡Enlace de perfil copiado!',
@@ -314,6 +452,8 @@ const es: Strings = {
     friends: 'Amigos', addFriend: 'Añadir', followers: 'Seguidores', following: 'Siguiendo',
     follow: 'Seguir', unfollow: 'Dejar de seguir', feed: 'Feed de actividad',
     streakBadge: '{{days}}d de racha', noFriends: 'Sin amigos aún. ¡Añade alguno!',
+    mockMessage: 'Manteniendo el enfoque a tope.',
+    agoHours: 'Hace {{n}} horas',
   },
   friendProfile: {
     title: 'Perfil', streak: '🔥 Racha de {{days}} días', rank: 'Top {{pct}}% de usuarios',
@@ -321,6 +461,7 @@ const es: Strings = {
     theyBetter: '{{name}} usa {{diff}}h menos al día que tú 💪',
     comparison: 'Comparativa 7 días', headToHead: 'Cara a cara',
     avgDaily: 'Uso diario medio', streakLabel: 'Racha', rankLabel: 'Clasificación',
+    topPercentage: 'Top {{pct}}% de usuarios',
   },
   stats: {
     title: 'Estadísticas', week: 'Esta semana', month: 'Este mes', threeMonths: 'Últimos 3 meses', year: 'Último año',
@@ -332,6 +473,18 @@ const es: Strings = {
     days: {
       mon: 'L', tue: 'M', wed: 'X', thu: 'J', fri: 'V', sat: 'S', sun: 'D'
     },
+    invite: 'Invitar',
+    shareTitle: 'Comparte tu progreso',
+    shareSubtitle: 'Invita a otros a seguir tu racha y motivarse juntos.',
+    sendWhatsApp: 'Enviar por WhatsApp / Más',
+    copied: '¡Copiado!',
+    followers: 'Seguidores',
+    following: 'Siguiendo',
+    sharePopupTitleNative: 'Compartir Perfil de Lesser',
+    shareMessageNative: '¡Únete a mi reto en Lesser! Sígueme para ver mi progreso reduciendo el tiempo de pantalla: {{link}}',
+    shareMessageFriend: 'Mira el progreso de @{{username}} en Lesser. ¡Vamos a ser disciplinados juntos! {{link}}',
+    weekLabel: 'S{{n}}',
+    resultsFound: '{{count}} resultados',
   },
 
   followers: {
@@ -343,6 +496,8 @@ const es: Strings = {
     countSummary: '{{count}} {{noun}} · {{following}} siguiendo',
     noFollowers: 'Aún no tienes seguidores.',
     noResults: 'Sin resultados.',
+    searching: 'Buscando...',
+    noFollowing: 'No sigues a nadie todavía.',
   },
   settings: {
     title: 'Ajustes', version: 'IMPACKTHON 2026 — {{version}}',
@@ -357,11 +512,34 @@ const es: Strings = {
     deleteAccountPasswordHint: 'Introduce tu contraseña para confirmar la eliminación de la cuenta.',
     deleteAccountError: 'No se pudo eliminar la cuenta. Inténtalo de nuevo.',
     passwordRequired: 'Por favor introduce tu contraseña.',
-    silentNudge: 'Empujón Silencioso (Android)',
+    silentNudge: 'Nudge Silencioso (Android)',
     silentNudgeDesc: 'Silencia el sonido periódicamente tras un uso prolongado.',
     usageThreshold: 'Límite de Uso',
     usageThresholdMinutes: '{{minutes}} minutos',
     usageThresholdInfo: 'El empujón comienza tras estos minutos de uso.',
+    language: 'Idioma',
+    english: 'Inglés',
+    spanish: 'Español',
+    goal: 'Objetivo Diario',
+    timeLimit: 'Límite de tiempo',
+    adjustGoal: 'Ajusta tu meta (influye en la racha)',
+    whitelistTitle: 'Aplicaciones Permitidas',
+    whitelistHelper: 'Estas aplicaciones no se verán afectadas por las limitaciones de tiempo.',
+    deleteConfirmTitle: 'Confirmación Final',
+    deleteConfirmDesc: 'Esta acción NO se puede deshacer. Se borrarán tus seguidores, seguidos, posts y perfil para siempre.',
+    deletePermanently: 'ELIMINAR PERMANENTEMENTE',
+    deleteSureTitle: '¿Estás seguro?',
+    deleteSureSubtitle: 'Esta acción borrará permanentemente toda tu presencia en Lesser.',
+    deleteLoseTitle: 'Perderás para siempre:',
+    deleteLose1: 'Tu perfil y nombre de usuario',
+    deleteLose2: 'Todos tus seguidores y personas que sigues',
+    deleteLose3: 'Todo tu historial de actividad y posts',
+    deleteLose4: 'Comparaciones de estadísticas con amigos',
+    deleteLabelPassword: 'Confirmar Contraseña',
+    deletePlaceholderPassword: 'Escribe tu contraseña',
+    deleteLabelConfirmText: 'Escribe {{text}}',
+    deleteConfirmValue: 'ELIMINAR MI CUENTA',
+    deleteCancel: 'Mejor no, volver atrás',
   },
   wellbeing: {
     title: 'Bienestar Digital',
@@ -372,19 +550,74 @@ const es: Strings = {
     currentDelay: 'Retraso actual: {{ms}}ms',
     delayDescription: 'El lag artificial aplicado actualmente a las peticiones de red.',
   },
+  ai: {
+    systemInstructionMotivational: `
+### ROLE
+Eres un Analista de Bienestar Digital de élite y Coach de Productividad para la aplicación 'Lesser'.
+
+### OBJECTIVE
+Analizar los datos reales de uso de móvil del usuario y proporcionar un diagnóstico motivador, profesional y basado en datos.
+
+### TONE & STYLE
+- Profesional, elegante y empoderador.
+- Usa un lenguaje sofisticado pero accesible (Español de España).
+- Evita clichés aburridos; busca comparaciones intelectuales potentes.
+- Sin hashtags. Emojis mínimos (máximo 1).
+`,
+    systemInstructionSocial: `
+### ROLE
+Eres una comunidad de apoyo ultra-positiva y moderna. 
+
+### TASK
+Tu objetivo es animar a un amigo que ha logrado un hito de desintoxicación digital.
+Usa un lenguaje tipo "hype" pero con clase. 
+
+### CONSTRAINTS
+- Español de España.
+- Máximo 15 palabras.
+- Enfoque en el valor del tiempo ganado.
+`,
+    fallbackMotivational: 'Top {{pct}}% con {{saved}}h ahorradas. ¡Tu disciplina es real!',
+    fallbackSocial: '¡Has ahorrado lo suficiente para verte la 1º temporada de True Detective!',
+    promptMotivational: `
+### DATOS DEL USUARIO
+<context>
+  <username>{{username}}</username>
+  <mode>{{mode}}</mode>
+  <streak>{{streak}} días</streak>
+  <usage_24h>{{usage24h}}h</usage_24h>
+  <daily_goal>{{goal}}h</daily_goal>
+  <saved_week>{{savedWeek}}h</saved_week>
+  <ranking>Top {{ranking}}%</ranking>
+</context>
+
+### DETALLES DE APPS
+<app_usages>
+{{appsXml}}
+</app_usages>
+
+### TAREA
+Genera una reflexión de 35-45 palabras. 
+1. Analiza si ha cumplido su meta técnica ({{usage24h}}h vs {{goal}}h).
+2. Menciona una app específica del listado.
+3. Compara el ahorro semanal con una actividad de alto valor intelectual o recreativa.
+`,
+    promptSocial: `Felicita a <friend>{{friendName}}</friend> por su logro de <type>{{type}}</type> con valor de <value>{{value}}</value>.`,
+  },
 };
 
 const LANGUAGES: Record<string, Strings> = { en, es };
 
-// Current language — change this to switch the whole UI
+// Only Spanish supported now.
 let currentLanguage = 'es';
 
 export function setLanguage(lang: string) {
-  if (LANGUAGES[lang]) currentLanguage = lang;
+  // Logic disabled - only 'es' is allowed
+  currentLanguage = 'es';
 }
 
 export function getLanguage(): string {
-  return currentLanguage;
+  return 'es';
 }
 
 /**
@@ -406,7 +639,7 @@ export function t(key: string, params?: Record<string, string | number>): string
       break;
     }
   }
-  if (typeof value !== 'string') return key;
+  if (typeof value !== 'string') return value ?? key;
   if (!params) return value;
   return Object.entries(params).reduce(
     (str, [k, v]) => str.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), String(v)),

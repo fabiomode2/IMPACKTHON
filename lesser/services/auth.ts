@@ -31,6 +31,7 @@ import {
 import { auth, rtdb } from './firebase';
 import { performFullUserCleanup } from './userCleanup';
 import { formatLocalISO } from './usage';
+import { t } from '@/constants/i18n';
 
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -42,6 +43,8 @@ export interface UserProfile {
   username: string;
   email?: string;
   mode: Mode;
+  goalHours?: number;
+  goalMinutes?: number;
   streakDays: number;
   followersCount?: number;
   followingCount?: number;
@@ -77,6 +80,8 @@ async function readProfile(uid: string, usernameHint?: string): Promise<UserProf
     username: data?.username ?? usernameHint ?? 'User',
     email: data?.email,
     mode: data?.mode ?? 'mid',
+    goalHours: data?.goalHours ?? 4,
+    goalMinutes: data?.goalMinutes ?? 240,
     streakDays: data?.streakDays ?? 0,
     followersCount: data?.followersCount ?? 0,
     followingCount: data?.followingCount ?? 0,
@@ -100,24 +105,24 @@ export async function isUsernameTaken(username: string): Promise<boolean> {
  * Register a new user.
  * Creates Firebase Auth account + RTDB /users/{uid} and /usernames/{lower} entries.
  */
-export async function registerUser(username: string, password: string): Promise<AuthResult> {
+export async function registerUser(username: string, password: string, mode: Mode = 'mid', goalHours: number = 4): Promise<AuthResult> {
   try {
     const trimmed = username.trim();
     const lower = trimmed.toLowerCase();
 
     // 1. Validation
     if (!isValidUsername(trimmed)) {
-      return { success: false, error: 'El nombre de usuario solo puede contener letras, números y guiones bajos.' };
+      return { success: false, error: t('auth.errorUsernameInvalid') };
     }
 
     if (password.length < 6) {
-      return { success: false, error: 'La contraseña debe tener al menos 6 caracteres.' };
+      return { success: false, error: t('auth.errorPasswordShort') };
     }
 
     // 2. Explicit check for username in DB
     const taken = await isUsernameTaken(trimmed);
     if (taken) {
-      return { success: false, error: 'Este nombre de usuario ya está en uso.' };
+      return { success: false, error: t('auth.errorUsernameTaken') };
     }
 
     const email: string = usernameToEmail(trimmed);
@@ -135,7 +140,8 @@ export async function registerUser(username: string, password: string): Promise<
       username: trimmed,
       username_lowercase: lower,
       email,
-      mode: 'mid',
+      mode,
+      goalHours,
       streakDays: 0,
       followersCount: 0,
       followingCount: 0,
@@ -155,7 +161,9 @@ export async function registerUser(username: string, password: string): Promise<
         uid,
         username: trimmed,
         email,
-        mode: 'mid',
+        mode,
+        goalHours,
+        goalMinutes: goalHours * 60,
         streakDays: 0,
         followersCount: 0,
         followingCount: 0,
@@ -205,7 +213,7 @@ export async function updateUserProfile(
       if (data.username.toLowerCase() !== currentProfile.username.toLowerCase()) {
         const taken = await isUsernameTaken(data.username);
         if (taken) {
-          return { success: false, error: 'Este nombre de usuario ya está en uso.' };
+          return { success: false, error: t('auth.errorUsernameTaken') };
         }
         // If we allowed it, we'd need to update BOTH nodes.
         // Keeping it simple: just update the field for now.
@@ -232,6 +240,21 @@ export async function updateUserProfile(
   }
 }
 
+/**
+ * Updates the daily screen time goal (in minutes) for a user.
+ */
+export async function updateGoalMinutes(
+  uid: string,
+  goalMinutes: number
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await update(ref(rtdb, `users/${uid}`), { goalMinutes });
+    return { success: true };
+  } catch (err: unknown) {
+    return { success: false, error: friendlyAuthError(err) };
+  }
+}
+
 
 /**
  * Permanently delete the user's account.
@@ -240,7 +263,7 @@ export async function deleteAccount(
   currentPassword: string,
 ): Promise<{ success: boolean; error?: string }> {
   const user = auth.currentUser;
-  if (!user || !user.email) return { success: false, error: 'No autenticado.' };
+  if (!user || !user.email) return { success: false, error: t('auth.errorGeneric') };
 
   try {
     const credential = EmailAuthProvider.credential(user.email, currentPassword);
@@ -273,28 +296,28 @@ export async function deleteAccount(
 // ─── Error mapping ────────────────────────────────────────────────────────────
 
 function friendlyAuthError(err: unknown): string {
-  if (!(err instanceof Error)) return 'Error desconocido.';
+  if (!(err instanceof Error)) return t('auth.genericError');
   const errorObj = err as any;
   const code = errorObj.code ?? '';
   const message = errorObj.message ?? '';
 
   // Handle Firebase Auth codes
   switch (code) {
-    case 'auth/email-already-in-use': return 'Este nombre de usuario ya está ocupado.';
-    case 'auth/user-not-found': return 'Usuario no encontrado.';
-    case 'auth/wrong-password': return 'Contraseña incorrecta.';
-    case 'auth/invalid-credential': return 'Credenciales inválidas.';
-    case 'auth/weak-password': return 'La contraseña debe tener al menos 6 caracteres.';
-    case 'auth/too-many-requests': return 'Demasiados intentos. Prueba más tarde.';
-    case 'auth/network-request-failed': return 'Error de red. Revisa tu conexión.';
-    case 'auth/requires-recent-login': return 'Cierra sesión e inicia de nuevo antes de esta acción.';
-    case 'auth/invalid-email': return 'Nombre de usuario inválido.';
+    case 'auth/email-already-in-use': return t('auth.errorUsernameTaken');
+    case 'auth/user-not-found': return t('auth.errorUserNotFound');
+    case 'auth/wrong-password': return t('auth.errorWrongPassword');
+    case 'auth/invalid-credential': return t('auth.errorInvalidCredential');
+    case 'auth/weak-password': return t('auth.errorPasswordShort');
+    case 'auth/too-many-requests': return t('auth.errorTooManyRequests');
+    case 'auth/network-request-failed': return t('auth.errorNetworkFailed');
+    case 'auth/requires-recent-login': return t('auth.errorRecentLogin');
+    case 'auth/invalid-email': return t('auth.errorInvalidEmail');
   }
 
   // Handle Realtime Database / Firebase errors
   if (message.includes('PERMISSION_DENIED') || code === 'PERMISSION_DENIED') {
-    return 'Error de permisos: Asegúrate de que las reglas de la base de datos permitan el registro.';
+    return t('auth.errorPermissionDenied');
   }
 
-  return message || 'Algo salió mal.';
+  return message || t('auth.genericError');
 }
