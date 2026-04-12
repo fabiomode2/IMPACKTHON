@@ -11,6 +11,7 @@ import { WhitelistSection } from '@/components/settings/WhitelistSection';
 import { DebugSection } from '@/components/settings/DebugSection';
 import { ThemedText } from '@/components/themed-text';
 import { t } from '@/constants/i18n';
+import { GoalSection } from '@/components/settings/GoalSection';
 
 export default function SettingsScreen() {
   const theme = useColorScheme() ?? 'light';
@@ -25,6 +26,7 @@ export default function SettingsScreen() {
         </View>
 
         <AccountSection />
+        <GoalSection />
         <ModeSelector />
         <WellbeingSection />
         <WhitelistSection />

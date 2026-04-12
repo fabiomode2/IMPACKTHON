@@ -12,6 +12,7 @@ import { t } from '@/constants/i18n';
 import { useAuth } from '@/hooks/useAuth';
 import { useUsageData } from '@/hooks/useUsageData';
 import { formatLocalISO } from '@/services/usage';
+import { GithubCalendar } from '@/components/home/GithubCalendar';
 
 const BAR_MAX_HEIGHT = 120;
 
@@ -185,6 +186,7 @@ export default function StatsScreen() {
   const period = PERIOD_CYCLE[periodIdx];
 
   const dailyUsage = usageData?.rawUsage || {};
+  const calendarData = usageData?.calendarData || [];
   
   const chartData = useMemo(() => getChartData(dailyUsage, period), [dailyUsage, period]);
 
@@ -286,6 +288,11 @@ export default function StatsScreen() {
           </View>
           <BarChart data={chartData} />
         </TouchableOpacity>
+
+        {/* Consistency Map (Calendar) */}
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <GithubCalendar data={calendarData} />
+        </View>
 
         {/* Monthly snapshot */}
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>

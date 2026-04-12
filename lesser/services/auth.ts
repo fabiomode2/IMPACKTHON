@@ -42,6 +42,7 @@ export interface UserProfile {
   username: string;
   email?: string;
   mode: Mode;
+  goalHours?: number;
   streakDays: number;
   followersCount?: number;
   followingCount?: number;
@@ -77,6 +78,7 @@ async function readProfile(uid: string, usernameHint?: string): Promise<UserProf
     username: data?.username ?? usernameHint ?? 'User',
     email: data?.email,
     mode: data?.mode ?? 'mid',
+    goalHours: data?.goalHours ?? 4,
     streakDays: data?.streakDays ?? 0,
     followersCount: data?.followersCount ?? 0,
     followingCount: data?.followingCount ?? 0,
@@ -100,7 +102,7 @@ export async function isUsernameTaken(username: string): Promise<boolean> {
  * Register a new user.
  * Creates Firebase Auth account + RTDB /users/{uid} and /usernames/{lower} entries.
  */
-export async function registerUser(username: string, password: string): Promise<AuthResult> {
+export async function registerUser(username: string, password: string, mode: Mode = 'mid', goalHours: number = 4): Promise<AuthResult> {
   try {
     const trimmed = username.trim();
     const lower = trimmed.toLowerCase();
@@ -135,7 +137,8 @@ export async function registerUser(username: string, password: string): Promise<
       username: trimmed,
       username_lowercase: lower,
       email,
-      mode: 'mid',
+      mode,
+      goalHours,
       streakDays: 0,
       followersCount: 0,
       followingCount: 0,
@@ -155,7 +158,8 @@ export async function registerUser(username: string, password: string): Promise<
         uid,
         username: trimmed,
         email,
-        mode: 'mid',
+        mode,
+        goalHours,
         streakDays: 0,
         followersCount: 0,
         followingCount: 0,
@@ -227,6 +231,21 @@ export async function updateUserProfile(
 
     const profile = await readProfile(uid);
     return { success: true, user: profile };
+  } catch (err: unknown) {
+    return { success: false, error: friendlyAuthError(err) };
+  }
+}
+
+/**
+ * Updates the daily screen time goal (in minutes) for a user.
+ */
+export async function updateGoalMinutes(
+  uid: string,
+  goalMinutes: number
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await update(ref(rtdb, `users/${uid}`), { goalMinutes });
+    return { success: true };
   } catch (err: unknown) {
     return { success: false, error: friendlyAuthError(err) };
   }

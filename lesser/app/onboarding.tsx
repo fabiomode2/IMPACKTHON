@@ -19,52 +19,49 @@ const MODES: {
   features: { icon: string; text: string }[];
   accentColor: string;
 }[] = [
-  {
-    id: 'soft',
-    name: 'Soft',
-    emoji: '🌿',
-    tagline: 'Awareness, not restriction.',
-    description: 'Track your habits and build awareness without any hard blocks.',
-    accentColor: '#34C759',
-    features: [
-      { icon: 'chart.bar.fill', text: 'Daily screen time tracking' },
-      { icon: 'flame.fill', text: 'Streak counter with goal' },
-      { icon: 'bell.fill', text: 'Gentle daily reminders' },
-      { icon: 'person.2.fill', text: 'Social feed & friend progress' },
-      { icon: 'calendar', text: '30-day consistency calendar' },
-    ],
-  },
-  {
-    id: 'mid',
-    name: 'Mid',
-    emoji: '🛡️',
-    tagline: 'Active reduction.',
-    description: 'Soft locks and warning screens nudge you off apps when you go over your daily goal.',
-    accentColor: '#FF9500',
-    features: [
-      { icon: 'checkmark.circle.fill', text: 'All Soft features' },
-      { icon: 'exclamationmark.triangle.fill', text: 'Warning screens on over-use' },
-      { icon: 'timer', text: 'Per-app daily limits' },
-      { icon: 'lock.fill', text: 'Temporary app access cooldowns' },
-      { icon: 'star.fill', text: 'Leaderboard & top user badge' },
-    ],
-  },
-  {
-    id: 'hardcore',
-    name: 'Hardcore',
-    emoji: '🔥',
-    tagline: 'Maximum enforcement.',
-    description: 'Hard-locks, strict limits, and automatic accountability photos when you stare too long.',
-    accentColor: '#FF3B30',
-    features: [
-      { icon: 'checkmark.circle.fill', text: 'All Mid features' },
-      { icon: 'lock.shield.fill', text: 'Hard app locks — no override' },
-      { icon: 'camera.fill', text: 'Auto photos when staring too long' },
-      { icon: 'person.crop.circle.badge.exclamationmark', text: 'Photos shared to social feed' },
-      { icon: 'bolt.fill', text: 'Emergency unlock only via friend' },
-    ],
-  },
-];
+    {
+      id: 'soft',
+      name: 'Soft',
+      emoji: '🌿',
+      tagline: 'Awareness, not restriction.',
+      description: 'Track your habits and build awareness without any hard blocks.',
+      accentColor: '#34C759',
+      features: [
+        { icon: 'chart.bar.fill', text: 'Daily screen time tracking' },
+        { icon: 'flame.fill', text: 'Streak counter with goal' },
+        { icon: 'bell.fill', text: 'Gentle daily reminders' },
+        { icon: 'person.2.fill', text: 'Social feed & friend progress' },
+        { icon: 'calendar', text: '30-day consistency calendar' },
+      ],
+    },
+    {
+      id: 'mid',
+      name: 'Mid',
+      emoji: '🛡️',
+      tagline: 'Active reduction.',
+      description: 'Soft locks and warning screens nudge you off apps when you go over your daily goal.',
+      accentColor: '#FF9500',
+      features: [
+        { icon: 'checkmark.circle.fill', text: 'All Soft features' },
+        { icon: 'exclamationmark.triangle.fill', text: 'Warning screens on over-use' },
+        { icon: 'timer', text: 'Per-app daily limits' },
+        { icon: 'lock.fill', text: 'Temporary app access cooldowns' },
+        { icon: 'star.fill', text: 'Leaderboard & top user badge' },
+      ],
+    },
+    {
+      id: 'hardcore',
+      name: 'Hardcore',
+      emoji: '🔥',
+      tagline: 'Maximum enforcement.',
+      description: 'Hard-locks, strict limits, and automatic accountability photos when you stare too long.',
+      accentColor: '#FF3B30',
+      features: [
+        { icon: 'checkmark.circle.fill', text: 'All Mid features' },
+        { icon: 'camera.fill', text: 'Auto photos when staring too long' },
+      ],
+    },
+  ];
 
 export default function OnboardingScreen() {
   const { completeOnboarding } = useAuth();
