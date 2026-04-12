@@ -1,9 +1,9 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { IconSymbol } from '@/components/ui/icon-symbol';
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
 
 interface TopUsersBadgeProps {
   percentage: number;
@@ -17,7 +17,7 @@ export function TopUsersBadge({ percentage }: TopUsersBadgeProps) {
     <View style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <IconSymbol name="star.fill" size={20} color="#FFD60A" />
       <ThemedText style={styles.text}>
-        You are in the <ThemedText style={{ fontWeight: 'bold' }}>top {percentage}%</ThemedText> of users!
+        Estás en el top <ThemedText style={{ fontWeight: 'bold' }}>{percentage}%</ThemedText> de usuarios!
       </ThemedText>
     </View>
   );

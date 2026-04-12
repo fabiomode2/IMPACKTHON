@@ -1,50 +1,23 @@
-# Welcome to your Expo app 👋
+# Lesser
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicación para reducir el uso del móvil.
 
-## Get started
+La principal diferencia entre Lesser y otras apps es que, mientras otras apps ponen bloqueos duros he intraspasables que impiden al usuario acceder a aplicaciones, Lesser empeora la calidad de usuario de las aplicaciones progresivamente con el tiempo que se pasa en ellas con la intención de que el usuario decida por si mismo dejar de usar el móvil. 
 
-1. Install dependencies
+Este enfoque se comporta mejor a largo plazo ya que los bloqueos duros, pasados los primeros momentos de motivación, al ser tan inmediatos, causan la suficiente frustación que provoca la mayoría de usuarios decidan desinstalar la app para que deje de dar el coñazo.
 
-   ```bash
-   npm install
-   ```
+Las principales medidas que propone Lesser estan divididas en 3 bloques:
 
-2. Start the app
+##### Soft
+- Periodos aleatorios donde se pierde el sonido
+- Ralentización de la velocidad del internet para disminuir la frecuencia de carga de contenido
 
-   ```bash
-   npx expo start
-   ```
 
-In the output, you'll find options to open the app in a
+#### Mid
+- Parpadeo de pantalla 
+- Progresión a una gama monocroma
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+#### Hardcore
+- Realización de un selfie sin avisar donde se pille al usuario en una posición poco óptima
+- Launcher de sistema minimalista (futuro)

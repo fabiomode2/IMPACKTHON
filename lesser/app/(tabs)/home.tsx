@@ -8,7 +8,6 @@ import React, { useEffect } from 'react';
 import { ActivityIndicator, AppState, NativeModules, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { MostUsedApps } from '@/components/home/MostUsedApps';
 import { StreakCounter } from '@/components/home/StreakCounter';
 import { TopUsersBadge } from '@/components/home/TopUsersBadge';
 import { UsageHoursCounter } from '@/components/home/UsageHoursCounter';
@@ -156,13 +155,50 @@ export default function HomeScreen() {
           </View>
         </View>
 
+
+
+        {/* Streak */}
+        <StreakCounter days={streakDays} />
+
+        {/* Permission Banner */}
+        {!hasUsagePerm && (
+          <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border, marginBottom: 0 }]}>
+            <ThemedText style={{ fontSize: 16, fontWeight: 'bold' }}>{t('home.usagePermissionTitle')}</ThemedText>
+            <ThemedText style={{ color: colors.textSecondary, marginVertical: 8 }}>
+              {t('home.usagePermissionDesc')}
+            </ThemedText>
+            <TouchableOpacity
+              style={[styles.statsBtn, { backgroundColor: colors.accent, alignSelf: 'flex-start', marginTop: 8 }]}
+              onPress={() => NativeModules.AppUsageModule?.requestPermission()}
+            >
+              <ThemedText style={{ color: '#fff', fontWeight: 'bold' }}>{t('home.grantPermissionBtn')}</ThemedText>
+            </TouchableOpacity>
+          </View>
+        )}
+
+
+        {/* Permission Request Banner */}
+        {!hasUsagePerm && (
+          <TouchableOpacity
+            style={[styles.section, { backgroundColor: colors.accent + '20', borderColor: colors.accent }]}
+            onPress={() => requestPermission()}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <IconSymbol name="exclamationmark.triangle.fill" size={24} color={colors.accent} />
+              <View style={{ flex: 1 }}>
+                <ThemedText style={{ fontWeight: 'bold', color: colors.text }}>Activar Estadísticas</ThemedText>
+                <ThemedText style={{ fontSize: 13, color: colors.textSecondary }}>
+                  Lesser necesita "Acceso de uso" para medir tu tiempo de pantalla. Toca aquí para activarlo en Ajustes.
+                </ThemedText>
+              </View>
+            </View>
+          </TouchableOpacity>
+        )}
+
+
         {/* AI Motivational Reserved Space */}
         <View style={[styles.aiCard, { backgroundColor: colors.card, borderColor: aiMessage ? colors.accent + '30' : colors.border }]}>
           <View style={styles.aiHeader}>
-            <View style={[styles.aiIconContainer, { backgroundColor: colors.accent + '22' }]}>
-              <IconSymbol name="sparkles" size={14} color={colors.accent} />
-            </View>
-            <ThemedText style={[styles.aiTitle, { color: colors.accent }]}>Lesser AI Insight</ThemedText>
             {!aiMessage && <ActivityIndicator size="small" color={colors.accent} />}
           </View>
           {aiMessage ? (
@@ -175,48 +211,18 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Compact Daily Progress */}
-        <View style={[styles.progressCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <ThemedText style={styles.progressTitle}>Uso de Hoy</ThemedText>
-          <View style={styles.progressMain}>
-            <ThemedText style={[styles.progressValue, { color: isOverGoal ? colors.error : colors.text }]}>
-              {usageHours24h.toFixed(1)}h
-            </ThemedText>
-            <ThemedText style={[styles.progressGoal, { color: colors.textSecondary }]}>
-              / {goalHours}h meta
-            </ThemedText>
-          </View>
-          
-          <View style={[styles.progressBarBg, { backgroundColor: colors.border }]}>
-            <View style={[styles.progressBarFill, { 
-              width: `${progress * 100}%`, 
-              backgroundColor: isOverGoal ? colors.error : colors.accent 
-            }]} />
-          </View>
-          
-          <ThemedText style={[styles.progressStatus, { color: isOverGoal ? colors.error : colors.success }]}>
-            {isOverGoal ? '¡Te has pasado de la meta!' : 'Vas por buen camino'}
-          </ThemedText>
-        </View>
+        {/* Usage hours — cycling taps, no navigation */}
+        <UsageHoursCounter
+          hours24h={hasUsagePerm ? realUsageHours24h : usageHours24h}
+          hoursWeek={usageHoursWeek}
+          hoursMonth={usageHoursMonth}
+          hours6Months={usageHours6Months}
+        />
 
-        {/* Shortcut to Stats Tab */}
-        <TouchableOpacity
-          style={[styles.bigStatsBtn, { backgroundColor: colors.accent }]}
-          onPress={() => router.push('/(tabs)/estadisticas')}
-        >
-          <IconSymbol name="chart.bar.fill" size={20} color="#FFF" />
-          <ThemedText style={styles.bigStatsBtnText}>Ver estadísticas detalladas</ThemedText>
-          <IconSymbol name="chevron.right" size={16} color="rgba(255,255,255,0.7)" />
-        </TouchableOpacity>
+        {/* Top users badge */}
+        <TopUsersBadge percentage={topPercentage} />
 
-        {/* Live Active Timer (Small & Fixed) */}
-        <View style={styles.timerMini}>
-          <IconSymbol name="timer" size={14} color={colors.textSecondary} />
-          <ThemedText style={styles.timerMiniText}>
-            Tiempo activo: <ThemedText style={{fontWeight: '700', color: colors.text}}>{formattedTime}</ThemedText>
-          </ThemedText>
-        </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
