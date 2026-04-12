@@ -8,7 +8,6 @@ import React, { useEffect } from 'react';
 import { ActivityIndicator, AppState, NativeModules, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { GithubCalendar } from '@/components/home/GithubCalendar';
 import { MostUsedApps } from '@/components/home/MostUsedApps';
 import { StreakCounter } from '@/components/home/StreakCounter';
 import { TopUsersBadge } from '@/components/home/TopUsersBadge';
@@ -125,7 +124,6 @@ export default function HomeScreen() {
     loadAIMessage();
   }, [savedWeek, streakDays, username, mode, usageHours24h, goalHours, topPercentage]);
 
-  const calendarData = stats?.calendarData || [];
 
 
   const fallbackMostUsedApps = [
@@ -264,14 +262,6 @@ export default function HomeScreen() {
           </ThemedText>
         </TouchableOpacity>
 
-        {/* Calendar — taps go to stats */}
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={() => router.push('/stats')}
-          style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}
-        >
-          <GithubCalendar data={calendarData} />
-        </TouchableOpacity>
 
         {/* Most used apps */}
         <MostUsedApps apps={mostUsedApps} />
