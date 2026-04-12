@@ -114,7 +114,6 @@ npm install
 ```bash
 npm run start          # Inicia el servidor de desarrollo de Expo
 npm run android        # Abre el emulador de Android
-npm run ios            # Abre el simulador de iOS (solo en macOS)
 ```
 
 ### 3. Desplegar reglas e índices de Firestore
