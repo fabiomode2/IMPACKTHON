@@ -1,18 +1,11 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { StyleSheet, ScrollView, SafeAreaView, View, TouchableOpacity, ActivityIndicator, AppState, NativeModules, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAuth } from '@/hooks/useAuth';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { t } from '@/constants/i18n';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
-import { AppState, NativeModules, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useEffect } from 'react';
+import { ActivityIndicator, AppState, NativeModules, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GithubCalendar } from '@/components/home/GithubCalendar';
@@ -23,9 +16,9 @@ import { UsageHoursCounter } from '@/components/home/UsageHoursCounter';
 import { ThemedText } from '@/components/themed-text';
 import { useAppTimeTracker } from '@/hooks/useAppTimeTracker';
 import { useUsageData } from '@/hooks/useUsageData';
-import { checkAndPostMilestones } from '@/services/social';
 import { generateMotivationalMessage } from '@/services/llm';
-import { hasPermission, requestPermission, getDailyUsageStats } from '../../modules/expo-app-usage';
+import { checkAndPostMilestones } from '@/services/social';
+import { getDailyUsageStats, hasPermission, requestPermission } from '../../modules/expo-app-usage';
 
 import ReactNative from 'react-native';
 const {BackgroundFabModule} = ReactNative.NativeModules;
@@ -214,7 +207,7 @@ export default function HomeScreen() {
         <StreakCounter days={streakDays} />
 
         {/* Permission Banner */}
-        {!hasUsagePermission && (
+        {!hasUsagePerm && (
           <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border, marginBottom: 0 }]}>
             <ThemedText style={{ fontSize: 16, fontWeight: 'bold' }}>{t('home.usagePermissionTitle')}</ThemedText>
             <ThemedText style={{ color: colors.textSecondary, marginVertical: 8 }}>
@@ -231,7 +224,7 @@ export default function HomeScreen() {
 
         {/* Usage hours — cycling taps, no navigation */}
         <UsageHoursCounter
-          hours24h={hasUsagePermission ? realUsageHours24h : usageHours24h}
+          hours24h={hasUsagePerm ? realUsageHours24h : usageHours24h}
           hoursWeek={usageHoursWeek}
           hoursMonth={usageHoursMonth}
           hours6Months={usageHours6Months}
