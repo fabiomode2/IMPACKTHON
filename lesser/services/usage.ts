@@ -81,9 +81,34 @@ export function subscribeToUsageData(
       });
     }
 
+    // Cálculo de la racha: hoy - último día que superó el objetivo + 1
+    const GOAL_MINUTES = (data.goalHours ?? 4) * 60; // Usa 4h por defecto si no tiene objetivo
+    let computedStreak = 0;
+    
+    // Vamos hacia atrás en el calendario (hasta 365 días como límite de seguridad)
+    for (let i = 0; i < 365; i++) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const dStr = formatLocalISO(d);
+      
+      const usageMinutes = dailyUsage[dStr]?.totalMinutes || 0; // tiempo de uso de ese día
+      
+      if (usageMinutes > GOAL_MINUTES) {
+        // 'i' es matemáticamente la diferencia de días (hoy - último_día). 
+        // Sumamos + 1 como indicaste:
+        computedStreak = i + 1;
+        
+        // (Nota: Si quieres que al fallar hoy la racha sea 0, en lugar de i + 1 deberás usar simplemente i)
+        break;
+      } else if (!dailyUsage[dStr] && i > 0) {
+        // Opcional: si llegamos a fechas donde no hay registros (antes de que usara la app), 
+        // paramos y la racha será todos los días desde ese entonces.
+        computedStreak = i; 
+      }
+    }
 
     callback({
-      streakDays: data.streakDays ?? 0,
+      streakDays: computedStreak,
       topPercentage: data.topPercentage ?? 50,
       hours24h,
       hoursWeek,
@@ -93,7 +118,6 @@ export function subscribeToUsageData(
 
       rawUsage: dailyUsage
     });
-
 
   });
 }
