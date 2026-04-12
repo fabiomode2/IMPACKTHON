@@ -2,6 +2,7 @@ import { useState, useEffect, createContext, useContext } from 'react';
 import React from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { ref, get } from 'firebase/database';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth, rtdb } from '@/services/firebase';
 import { 
   loginUser, 
@@ -13,6 +14,8 @@ import {
 } from '@/services/auth';
 
 export type { Mode };
+
+const ONBOARDED_KEY = '@lesser:isOnboarded';
 
 interface AuthState {
   isOnboarded: boolean;
@@ -42,6 +45,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [mode, setModeState] = useState<Mode>('mid');
   const [user, setUser] = useState<UserProfile | null>(null);
 
+  // Load persisted onboarding flag from AsyncStorage on mount
+  useEffect(() => {
+    AsyncStorage.getItem(ONBOARDED_KEY).then((value) => {
+      if (value === 'true') setIsOnboarded(true);
+    });
+  }, []);
+
   // Subscribe to Firebase Auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -64,7 +74,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setModeState(profile.mode);
             setIsLoggedIn(true);
             setAuthCompleted(true);
+            // Persist onboarded state so it survives app restarts
             setIsOnboarded(true);
+            AsyncStorage.setItem(ONBOARDED_KEY, 'true');
           } else {
             // Document doesn't exist yet (e.g. registration failed mid-way or ghost auth)
             setUser(null);
@@ -91,6 +103,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const completeOnboarding = (selectedMode: Mode) => {
     setModeState(selectedMode);
     setIsOnboarded(true);
+    // Persist so the app doesn't show onboarding again on next launch
+    AsyncStorage.setItem(ONBOARDED_KEY, 'true');
   };
 
   const login = async (username: string, password: string): Promise<boolean> => {
