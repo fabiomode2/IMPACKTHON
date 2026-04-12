@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Menos scroll. Más vida.</strong><br/>
-  Una app desarrollada con React Native y Firebase para ayudarte a controlar tu tiempo de pantalla, reducirlo poco a poco y motivarte con retos, estadísticas y comparativas con amigos.
+  Una app desarrollada con React Native y Firebase para incitarte a reducir tu tiempo de uso del móvil.
 </p>
 
 <p align="center">
