@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Menos scroll. Más vida.</strong><br/>
-  Una app desarrollada con React Native y Firebase para ayudarte a controlar tu tiempo de pantalla, reducirlo poco a poco y motivarte con retos, estadísticas y comparativas con amigos.
+  Una app desarrollada con React Native y Firebase para incitarte a reducir tu tiempo de uso del móvil.
 </p>
 
 <p align="center">
@@ -29,8 +29,7 @@
 | **Calendario de uso** | Visualiza tu actividad diaria con un mapa de calor al estilo GitHub. |
 | **Autenticación con Firebase** | Inicio de sesión seguro con usuario y contraseña. |
 | **Modo oscuro** | Cambio automático entre modo claro y oscuro. |
-| **3 modos de desafío** | Elige entre Soft , Mid o Hardcore según el nivel que quieras. |
-| **Seguridad lista para producción** | Protección reforzada con Firebase y Cloud Functions. |
+| **3 modos de desafío** | Elige entre Soft, Mid o Hardcore según el nivel que quieras. |
 
 ---
 
@@ -110,50 +109,17 @@ cd IMPACKTHON/lesser
 npm install
 ```
 
-### 2. Configurar las credenciales de Firebase
-
-La app lee la configuración desde variables de entorno `EXPO_PUBLIC_`, y si no existen, usa los valores por defecto definidos en `constants/firebase.config.ts`.
-
-```bash
-# Desde la raíz de IMPACKTHON/
-cp .env.example .env
-# Edita el archivo .env y añade los valores de tu proyecto Firebase
-# No subas .env al repositorio
-```
-
-### 3. Ejecutar la app
+### 2. Ejecutar la app
 
 ```bash
 npm run start          # Inicia el servidor de desarrollo de Expo
 npm run android        # Abre el emulador de Android
 ```
 
----
-
-## Backend — Configuración de Firebase
-
-### Desplegar reglas e índices de Firestore
+### 3. Desplegar reglas e índices de Firestore
 
 ```bash
 cd backend
 firebase login
 firebase deploy --only firestore
 ```
-
-## Arquitectura de seguridad
-
-### Reglas de seguridad de Firestore
-
-| Colección | Lectura | Escritura |
-|---|---|---|
-| `/users/{uid}` | Cualquier usuario autenticado | Solo el propietario |
-| `/users/{uid}/followers/*` | Cualquier usuario autenticado | Solo Cloud Functions |
-| `/users/{uid}/following/*` | Cualquier usuario autenticado | Solo el propietario |
-| `/feedPosts/{postId}` | Cualquier usuario autenticado | El autor (crear/eliminar) |
-
-
-## 🌍 Internacionalización
-
-Todos los textos de la interfaz están centralizados en [`lesser/constants/i18n.ts`](lesser/constants/i18n.ts).
-
-Idiomas disponibles actualmente: 🇬🇧 `en` · 🇪🇸 `es`
